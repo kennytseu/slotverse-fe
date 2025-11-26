@@ -12,6 +12,15 @@ export async function GET() {
   });
 }
 
+// Health check endpoint
+export async function GET() {
+  return NextResponse.json({ 
+    status: "ok", 
+    message: "Telegram webhook endpoint is active",
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
