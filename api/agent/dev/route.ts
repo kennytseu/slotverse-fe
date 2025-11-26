@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         content: prompt,
       },
     ],
-    tools: toolDefs,
+    tools: toolDefs as any,
     tool_choice: "auto",
   });
 
