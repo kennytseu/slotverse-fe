@@ -209,8 +209,8 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
       await sendMessage(chatId, `🔗 Copying content from: ${url}\n⏳ Extracting game information...`);
       
       try {
-        const result = await callAgentAPI(`Copy and extract slot game content from this URL: ${url}. Analyze the page content, extract game details (name, provider, RTP, volatility, max win, features, description), and add it to SlotVerse platform with proper formatting and metadata.`, chatId.toString());
-        await handleAgentResponse(chatId, result, "copy");
+        const result = await callScrapeAPI(url, undefined, "game");
+        await handleScrapeResponse(chatId, result, "copy");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error copying content: ${error.message}`);
       }
@@ -229,8 +229,8 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
       await sendMessage(chatId, `📥 Importing games from: ${url}\n⏳ This may take a moment...`);
       
       try {
-        const result = await callAgentAPI(`Import multiple slot games from this URL: ${url}. Scan the page for all available games, extract their details (names, providers, features, etc.), and add them to SlotVerse platform. Focus on getting accurate game information and proper categorization.`, chatId.toString());
-        await handleAgentResponse(chatId, result, "import");
+        const result = await callScrapeAPI(url, undefined, "games-list");
+        await handleScrapeResponse(chatId, result, "import");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error importing content: ${error.message}`);
       }
@@ -257,8 +257,8 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
       await sendMessage(chatId, `🎯 Scraping "${gameName}" from: ${url}\n⏳ Extracting specific game data...`);
       
       try {
-        const result = await callAgentAPI(`Scrape specific slot game data for "${gameName}" from this URL: ${url}. Find and extract all available information about this specific game including RTP, volatility, max win, features, screenshots, and description. Add it to SlotVerse with complete metadata.`, chatId.toString());
-        await handleAgentResponse(chatId, result, "scrape");
+        const result = await callScrapeAPI(url, gameName, "game");
+        await handleScrapeResponse(chatId, result, "scrape");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error scraping game data: ${error.message}`);
       }
@@ -271,8 +271,8 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
       await sendMessage(chatId, `🔗 Detected URL: ${text}\n⏳ Analyzing content...`);
       
       try {
-        const result = await callAgentAPI(`Analyze this URL and extract any slot game content: ${text}. If it's a game page, extract the game details. If it's a provider page, extract provider information. If it's a games list, extract multiple games. Add the relevant content to SlotVerse platform.`, chatId.toString());
-        await handleAgentResponse(chatId, result, "url-analysis");
+        const result = await callScrapeAPI(text, undefined, "auto");
+        await handleScrapeResponse(chatId, result, "url-analysis");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error analyzing URL: ${error.message}`);
       }
@@ -321,6 +321,57 @@ async function callAgentAPI(prompt: string, sessionId: string) {
   }
 
   return await response.json();
+}
+
+async function callScrapeAPI(url: string, targetGame?: string, extractType?: string) {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://slotverse.net' 
+    : 'http://localhost:3000';
+    
+  const response = await fetch(`${baseUrl}/api/scrape`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, targetGame, extractType }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Scrape API error: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+async function handleScrapeResponse(chatId: number, result: any, type: string) {
+  if (result.success) {
+    let message = getResponseHeader(type);
+    
+    if (result.games && result.games.length > 0) {
+      message += `🎰 **Games Added:** ${result.games.length}\n\n`;
+      
+      result.games.slice(0, 5).forEach((game: any) => {
+        message += `• **${game.name}**`;
+        if (game.provider) message += ` (${game.provider})`;
+        if (game.rtp) message += ` - RTP: ${game.rtp}`;
+        message += `\n`;
+      });
+      
+      if (result.games.length > 5) {
+        message += `... and ${result.games.length - 5} more games\n`;
+      }
+      
+      if (result.dataFile) {
+        message += `\n📄 Data saved to: \`${result.dataFile}\``;
+      }
+    } else {
+      message += result.message || "No games found on the page";
+    }
+    
+    message += `\n\n🚀 Changes committed to GitHub and will deploy automatically!`;
+    
+    await sendMessage(chatId, message);
+  } else {
+    await sendMessage(chatId, `❌ Error: ${result.error || 'Unknown error occurred'}`);
+  }
 }
 
 async function handleAgentResponse(chatId: number, result: any, type: string) {
