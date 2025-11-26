@@ -88,6 +88,7 @@ I'll help you manage your slots platform content! 🎰`;
 **/addcategory [name]** - Create game category
 **/updatehomepage [section] [content]** - Update homepage
 **/stats** - View platform statistics
+**/dbsetup** - Initialize database tables
 
 **Import Examples:**
 \`/copy https://slotcatalog.com/slots/sweet-bonanza\`
@@ -108,7 +109,26 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
 
     // /status
     if (text === "/status") {
-      await sendMessage(chatId, "✅ Bot is online and ready!\n🔗 Connected to GitHub\n💾 Memory system active\n🤖 AI agent ready");
+      try {
+        // Check database connection
+        const dbResponse = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://slotverse.net' : 'http://localhost:3000'}/api/database/init`);
+        const dbStatus = await dbResponse.json();
+        
+        const statusMessage = `✅ **SlotVerse Status**
+
+🤖 **Bot**: Online and ready
+🔗 **GitHub**: Connected
+💾 **Memory**: Redis active
+🗄️ **Database**: ${dbStatus.connected ? '✅ Connected' : '❌ Disconnected'}
+🎰 **Scraping**: Active
+🚀 **Deployment**: Auto-deploy enabled
+
+${dbStatus.connected ? '**Ready to scrape games!**' : '**Database issue - using fallback storage**'}`;
+
+        await sendMessage(chatId, statusMessage);
+      } catch (error) {
+        await sendMessage(chatId, "✅ Bot is online and ready!\n🔗 Connected to GitHub\n💾 Memory system active\n🤖 AI agent ready\n⚠️ Database status unknown");
+      }
       return NextResponse.json({ ok: true });
     }
 
@@ -289,6 +309,44 @@ I'll automatically extract game info and add it to SlotVerse! 🎲`;
         await handleAgentResponse(chatId, result, "general");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // /dbsetup command
+    if (text === "/dbsetup") {
+      await sendMessage(chatId, "🗄️ Setting up database tables...\n⏳ Please wait...");
+      
+      try {
+        const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://slotverse.net' : 'http://localhost:3000'}/api/database/init`, {
+          method: 'POST'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          await sendMessage(chatId, `✅ **Database Setup Complete!**
+
+📊 **Tables Created:**
+• Games table
+• Providers table
+
+🎯 **Features Ready:**
+• Game storage and retrieval
+• Provider management
+• Search functionality
+• Featured games system
+
+Your MySQL database is now ready for game scraping! 🎰`);
+        } else {
+          await sendMessage(chatId, `❌ **Database Setup Failed**
+
+Error: ${result.error}
+
+Please check your MySQL connection settings.`);
+        }
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Database setup error: ${error.message}`);
       }
       
       return NextResponse.json({ ok: true });

@@ -251,6 +251,7 @@ interface GameData {
   volatility?: string;
   maxWin?: string;
   description?: string;
+  image?: string;
   source: string;
 }
 
@@ -283,6 +284,13 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
       /<title>([^<|]+)/gi,
       /class="[^"]*(?:game|slot|title)[^"]*"[^>]*>([^<]+)</gi,
       /"name"\s*:\s*"([^"]+)"/gi
+    ],
+    images: [
+      /<img[^>]*src="([^"]*(?:slot|game|demo|thumb|preview|cover)[^"]*\.[^"]*)"[^>]*>/gi,
+      /<img[^>]*class="[^"]*(?:game|slot|demo|thumb|preview|cover)[^"]*"[^>]*src="([^"]+)"/gi,
+      /"image"\s*:\s*"([^"]+)"/gi,
+      /"thumbnail"\s*:\s*"([^"]+)"/gi,
+      /"cover"\s*:\s*"([^"]+)"/gi
     ],
     rtp: [
       /rtp[^>]*>([0-9]{2,3}\.[0-9]{1,2}%)/gi,
@@ -380,6 +388,42 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
       }
     }
   }
+
+  // Extract images
+  const images: string[] = [];
+  for (const pattern of gamePatterns.images) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      let imageUrl = match[1].trim();
+      
+      // Convert relative URLs to absolute
+      if (imageUrl.startsWith('/')) {
+        const urlObj = new URL(url);
+        imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+      } else if (imageUrl.startsWith('./')) {
+        const urlObj = new URL(url);
+        imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl.substring(1)}`;
+      }
+      
+      // Filter out small icons and invalid images
+      if (imageUrl.length > 10 && 
+          !imageUrl.includes('icon') && 
+          !imageUrl.includes('logo') &&
+          !imageUrl.includes('favicon') &&
+          (imageUrl.includes('.jpg') || imageUrl.includes('.png') || imageUrl.includes('.webp') || imageUrl.includes('.jpeg'))) {
+        images.push(imageUrl);
+      }
+    }
+  }
+
+  // Assign images to games
+  data.games.forEach((game: GameData, index: number) => {
+    if (images[index]) {
+      game.image = images[index];
+    } else if (images[0]) {
+      game.image = images[0]; // Use first image as fallback
+    }
+  });
 
   // Remove duplicates and clean data
   data.games = data.games.filter((game: GameData, index: number, self: GameData[]) => 

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleScrapeUrl } from "@/lib/agent/tool-functions";
 import { writeFile } from "@/lib/agent/git";
+import { 
+  createGame, 
+  createProvider, 
+  getGameBySlug, 
+  getProviderBySlug, 
+  createSlug, 
+  updateProviderGameCount,
+  testConnection 
+} from "@/lib/database/mysql";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +33,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.warn('Database connection failed, falling back to file storage');
+    }
+
     // Process the scraped data and create game entries
     const games = scrapeResult.data?.games || [];
     const providers = scrapeResult.data?.providers || [];
@@ -36,7 +51,64 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create a simple data file with the scraped content
+    const savedGames = [];
+    const savedProviders = [];
+
+    // Process each game
+    for (const game of games) {
+      const gameName = game.name;
+      const providerName = game.provider || providers[0] || "Unknown";
+      const gameSlug = createSlug(gameName);
+      
+      try {
+        // Save to database if connected
+        if (dbConnected) {
+          // Check if provider exists, create if not
+          const existingProvider = await getProviderBySlug(createSlug(providerName));
+          if (!existingProvider && providerName !== "Unknown") {
+            const providerId = await createProvider({
+              name: providerName,
+              slug: createSlug(providerName),
+              description: `Games by ${providerName}`,
+              is_featured: false
+            });
+            savedProviders.push({ id: providerId, name: providerName });
+          }
+
+          // Check if game exists
+          const existingGame = await getGameBySlug(gameSlug);
+          if (!existingGame) {
+            const gameId = await createGame({
+              name: gameName,
+              slug: gameSlug,
+              provider: providerName,
+              rtp: game.rtp || null,
+              volatility: game.volatility || null,
+              max_win: game.maxWin || null,
+              features: JSON.stringify(extractFeatures(gameName)),
+              description: `${gameName} is a slot game${providerName !== "Unknown" ? ` by ${providerName}` : ''}.`,
+              image_url: game.image || null,
+              source_url: url,
+              is_featured: true,
+              is_new: true
+            });
+
+            // Update provider game count
+            if (providerName !== "Unknown") {
+              await updateProviderGameCount(providerName);
+            }
+
+            savedGames.push({ id: gameId, name: gameName, provider: providerName });
+          } else {
+            console.log(`Game ${gameName} already exists in database`);
+          }
+        }
+      } catch (dbError) {
+        console.error('Database error for game:', gameName, dbError);
+      }
+    }
+
+    // Also save to JSON file as backup
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `data/scraped-games-${timestamp}.json`;
     
@@ -51,6 +123,7 @@ export async function POST(req: NextRequest) {
         maxWin: game.maxWin || "N/A",
         features: extractFeatures(game.name),
         description: `${game.name} is a slot game${game.provider ? ` by ${game.provider}` : ''}.`,
+        image: game.image || null,
         sourceUrl: url,
         addedAt: new Date().toISOString()
       }))
@@ -69,9 +142,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully scraped and added ${games.length} games`,
+      message: `Successfully scraped and added ${savedGames.length} games to database (${games.length} total found)`,
       games: gameData.games,
-      dataFile: fileName
+      savedToDatabase: savedGames,
+      savedProviders: savedProviders,
+      dataFile: fileName,
+      databaseConnected: dbConnected
     });
 
   } catch (error: any) {
