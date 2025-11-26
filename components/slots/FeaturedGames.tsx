@@ -9,6 +9,42 @@ interface FeaturedGamesProps {
 
 const featuredGames = [
   {
+    id: 1764184961074,
+    name: "Wicked Whiskers by Indigo Magic",
+    provider: "Game Providers",
+    image: "/api/placeholder/300/200",
+    rtp: "96.00%",
+    volatility: "Medium",
+    maxWin: "1,000x",
+    features: ["Standard Features"],
+    isNew: true,
+    isFeatured: true
+  },
+  {
+    id: 1764184961075,
+    name: "You likey?",
+    provider: "Game Providers",
+    image: "/api/placeholder/300/200",
+    rtp: "96.00%",
+    volatility: "Medium",
+    maxWin: "1,000x",
+    features: ["Standard Features"],
+    isNew: true,
+    isFeatured: true
+  },
+  {
+    id: 1764184961076,
+    name: "Home",
+    provider: "Game Providers",
+    image: "/api/placeholder/300/200",
+    rtp: "96.00%",
+    volatility: "Medium",
+    maxWin: "1,000x",
+    features: ["Standard Features"],
+    isNew: true,
+    isFeatured: true
+  },
+  {
     id: 1764184093033,
     name: "Wicked Whiskers",
     provider: "Indigo Magic",
@@ -92,6 +128,7 @@ const featuredGames = [
     isNew: false,
     isFeatured: false
   }
+
 
 ];
 
