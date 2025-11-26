@@ -7,7 +7,7 @@ const dbConfig = {
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || '',
   database: process.env.MYSQL_DATABASE || 'slotverse',
-  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   connectionLimit: 10,
   acquireTimeout: 60000,
   timeout: 60000,
