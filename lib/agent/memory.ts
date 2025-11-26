@@ -1,18 +1,15 @@
 import { Redis } from "@upstash/redis";
 
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+const redis = new Redis({
+  url: process.env.REDIS_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
 });
 
-// Save memory
 export async function saveMemory(key: string, value: any) {
-  await redis.set(key, JSON.stringify(value));
+  await redis.set(key, value);
 }
 
-// Load memory
-export async function loadMemory(key: string) {
-  const data = await redis.get<string>(key);
-  return data ? JSON.parse(data) : null;
+export async function getMemory(key: string) {
+  return await redis.get(key);
 }
 
