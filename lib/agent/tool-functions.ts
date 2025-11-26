@@ -278,14 +278,17 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
   // Common slot game data patterns
   const gamePatterns = {
     name: [
-      /<h1[^>]*>([^<]*(?:slot|game|bonanza|book|gates|sweet|big|mega|fire|gold|diamond|lucky|magic|wild|dragon|treasure|fortune|power|royal|super|ultra|extreme)[^<]*)<\/h1>/gi,
-      /<title>([^<]*(?:slot|game|bonanza|book|gates|sweet|big|mega|fire|gold|diamond|lucky|magic|wild|dragon|treasure|fortune|power|royal|super|ultra|extreme)[^<]*)<\/title>/gi,
-      /class="[^"]*game[^"]*"[^>]*>([^<]+)</gi
+      /<h1[^>]*>([^<]+)<\/h1>/gi,
+      /<h2[^>]*>([^<]+)<\/h2>/gi,
+      /<title>([^<|]+)/gi,
+      /class="[^"]*(?:game|slot|title)[^"]*"[^>]*>([^<]+)</gi,
+      /"name"\s*:\s*"([^"]+)"/gi
     ],
     rtp: [
-      /rtp[^>]*>([0-9.]+%?)/gi,
-      /return[^>]*>([0-9.]+%?)/gi,
-      /([0-9]{2}\.[0-9]{1,2}%)/g
+      /rtp[^>]*>([0-9]{2,3}\.[0-9]{1,2}%)/gi,
+      /return[^>]*>([0-9]{2,3}\.[0-9]{1,2}%)/gi,
+      /([0-9]{2,3}\.[0-9]{1,2}%)/g,
+      /"rtp"\s*:\s*"?([0-9]{2,3}\.[0-9]{1,2})%?"?/gi
     ],
     provider: [
       /provider[^>]*>([^<]+)</gi,
@@ -306,8 +309,22 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
   for (const pattern of gamePatterns.name) {
     let match;
     while ((match = pattern.exec(html)) !== null) {
-      const gameName = match[1].trim();
-      if (gameName.length > 3 && gameName.length < 100) {
+      let gameName = match[1].trim();
+      
+      // Clean up common unwanted text
+      gameName = gameName
+        .replace(/\s*-\s*.*$/, '') // Remove everything after dash
+        .replace(/\s*\|.*$/, '') // Remove everything after pipe
+        .replace(/\s*\(.*?\)/g, '') // Remove parentheses content
+        .replace(/Demo\s*/gi, '') // Remove "Demo"
+        .replace(/Slot\s*/gi, '') // Remove "Slot" 
+        .replace(/Game\s*/gi, '') // Remove "Game"
+        .replace(/Free\s*/gi, '') // Remove "Free"
+        .replace(/Play\s*/gi, '') // Remove "Play"
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      if (gameName.length > 3 && gameName.length < 50 && !gameName.includes('looking up')) {
         if (!targetGame || gameName.toLowerCase().includes(targetGame.toLowerCase())) {
           data.games.push({
             name: gameName,
