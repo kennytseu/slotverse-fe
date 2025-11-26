@@ -9,27 +9,14 @@ interface FeaturedGamesProps {
 
 const featuredGames = [
   {
-    id: 1764184093032,
-    name: "Wicked Whiskers Demo by Indigo Magic | Play our Free Slots",
-    provider: "looking up the DOM tree
-    let currentElement",
-    image: "/api/placeholder/300/200",
-    rtp: "30.4%",
-    volatility: "Medium",
-    maxWin: "1,000x",
-    features: ["Free Spins"],
-    isNew: true,
-    isFeatured: true
-  },
-  {
     id: 1764184093033,
     name: "Wicked Whiskers",
-    provider: "Slots Launch",
+    provider: "Indigo Magic",
     image: "/api/placeholder/300/200",
-    rtp: "96.00%",
+    rtp: "96.50%",
     volatility: "Medium",
-    maxWin: "1,000x",
-    features: ["Standard Features"],
+    maxWin: "5,000x",
+    features: ["Wild Symbols", "Free Spins", "Scatter Symbols"],
     isNew: true,
     isFeatured: true
   },
