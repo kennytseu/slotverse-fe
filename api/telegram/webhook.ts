@@ -4,6 +4,14 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const ALLOWED_USER_ID = process.env.ALLOWED_TELEGRAM_USER_ID;
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
+export async function GET() {
+  return NextResponse.json({ 
+    status: "Telegram webhook is active",
+    timestamp: new Date().toISOString(),
+    methods: ["POST"]
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -152,7 +160,12 @@ The AI will analyze your request, write the code, and commit it to GitHub automa
 }
 
 async function callAgentAPI(prompt: string, sessionId: string) {
-  const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/agent/dev`, {
+  // Use the correct production URL or fallback to localhost for development
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://slotverse.net' 
+    : 'http://localhost:3000';
+    
+  const response = await fetch(`${baseUrl}/api/agent/dev`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, sessionId }),
