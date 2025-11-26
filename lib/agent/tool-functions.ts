@@ -324,7 +324,7 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
   }
 
   // Extract JSON-LD structured data if available
-  const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis);
+  const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
   if (jsonLdMatches) {
     for (const jsonLdMatch of jsonLdMatches) {
       try {
