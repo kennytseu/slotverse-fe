@@ -65,15 +65,15 @@ export async function createGame(game: Omit<Game, 'id' | 'created_at' | 'updated
       game.name,
       game.slug,
       game.provider,
-      game.rtp || null,
-      game.volatility || null,
-      game.max_win || null,
-      game.features || null,
-      game.description || null,
-      game.image_url || null,
-      game.source_url || null,
-      game.is_featured || false,
-      game.is_new || true
+      game.rtp ?? null,
+      game.volatility ?? null,
+      game.max_win ?? null,
+      game.features ?? null,
+      game.description ?? null,
+      game.image_url ?? null,
+      game.source_url ?? null,
+      game.is_featured ?? false,
+      game.is_new ?? true
     ]
   );
   
@@ -159,10 +159,10 @@ export async function createProvider(provider: Omit<Provider, 'id' | 'created_at
     [
       provider.name,
       provider.slug,
-      provider.logo_url || null,
-      provider.description || null,
-      provider.game_count || 0,
-      provider.is_featured || false
+      provider.logo_url ?? null,
+      provider.description ?? null,
+      provider.game_count ?? 0,
+      provider.is_featured ?? false
     ]
   );
   
