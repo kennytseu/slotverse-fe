@@ -4,20 +4,13 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 const ALLOWED_USER_ID = process.env.ALLOWED_TELEGRAM_USER_ID;
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
-export async function GET() {
-  return NextResponse.json({ 
-    status: "Telegram webhook is active",
-    timestamp: new Date().toISOString(),
-    methods: ["POST"]
-  });
-}
-
 // Health check endpoint
 export async function GET() {
   return NextResponse.json({ 
     status: "ok", 
     message: "Telegram webhook endpoint is active",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    methods: ["GET", "POST"]
   });
 }
 
