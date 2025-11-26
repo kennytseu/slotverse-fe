@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
               features: JSON.stringify(extractFeatures(gameName)),
               description: `${gameName} is a slot game${providerName !== "Unknown" ? ` by ${providerName}` : ''}.`,
               image_url: game.image || undefined,
+              demo_url: game.demoUrl || undefined,
               source_url: url,
               is_featured: true,
               is_new: true
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
         features: extractFeatures(game.name),
         description: `${game.name} is a slot game${game.provider ? ` by ${game.provider}` : ''}.`,
         image: game.image || null,
+        demoUrl: game.demoUrl || null,
         sourceUrl: url,
         addedAt: new Date().toISOString()
       }))

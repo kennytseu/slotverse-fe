@@ -35,6 +35,7 @@ export interface Game {
   features?: string; // JSON string
   description?: string;
   image_url?: string;
+  demo_url?: string;
   source_url?: string;
   is_featured?: boolean;
   is_new?: boolean;
@@ -59,8 +60,8 @@ export async function createGame(game: Omit<Game, 'id' | 'created_at' | 'updated
   const connection = getPool();
   
   const [result] = await connection.execute(
-    `INSERT INTO games (name, slug, provider, rtp, volatility, max_win, features, description, image_url, source_url, is_featured, is_new, created_at, updated_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    `INSERT INTO games (name, slug, provider, rtp, volatility, max_win, features, description, image_url, demo_url, source_url, is_featured, is_new, created_at, updated_at) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       game.name,
       game.slug,
@@ -71,6 +72,7 @@ export async function createGame(game: Omit<Game, 'id' | 'created_at' | 'updated
       game.features ?? null,
       game.description ?? null,
       game.image_url ?? null,
+      game.demo_url ?? null,
       game.source_url ?? null,
       game.is_featured ?? false,
       game.is_new ?? true
@@ -240,6 +242,7 @@ export async function initializeTables(): Promise<void> {
       features JSON,
       description TEXT,
       image_url VARCHAR(500),
+      demo_url VARCHAR(500),
       source_url VARCHAR(500),
       is_featured BOOLEAN DEFAULT FALSE,
       is_new BOOLEAN DEFAULT TRUE,

@@ -252,6 +252,7 @@ interface GameData {
   maxWin?: string;
   description?: string;
   image?: string;
+  demoUrl?: string;
   source: string;
 }
 
@@ -310,6 +311,13 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
     maxWin: [
       /max[^>]*win[^>]*>([0-9,]+x?)/gi,
       /maximum[^>]*>([0-9,]+x?)/gi
+    ],
+    demoUrl: [
+      /<a[^>]*href="([^"]*(?:play|demo|openGame)[^"]*)"[^>]*(?:play|demo|free)/gi,
+      /<iframe[^>]*src="([^"]*(?:game|demo|openGame)[^"]*)"[^>]*>/gi,
+      /href="([^"]*openGame\.do[^"]*)"[^>]*/gi,
+      /data-game-url="([^"]+)"/gi,
+      /"gameUrl"\s*:\s*"([^"]+)"/gi
     ]
   };
 
@@ -364,6 +372,41 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
         if (data.games.length > 0) {
           data.games[data.games.length - 1].provider = provider;
         }
+      }
+    }
+  }
+
+  // Extract demo URLs
+  for (const pattern of gamePatterns.demoUrl) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      let demoUrl = match[1].trim();
+      
+      // Convert relative URLs to absolute
+      if (demoUrl.startsWith('/')) {
+        const urlObj = new URL(url);
+        demoUrl = `${urlObj.protocol}//${urlObj.host}${demoUrl}`;
+      } else if (demoUrl.startsWith('./')) {
+        const urlObj = new URL(url);
+        demoUrl = `${urlObj.protocol}//${urlObj.host}${demoUrl.substring(1)}`;
+      }
+      
+      // Validate URL
+      if (demoUrl.startsWith('http') && demoUrl.length > 10) {
+        if (data.games.length > 0) {
+          data.games[data.games.length - 1].demoUrl = demoUrl;
+        } else {
+          // If no games found yet, create a game entry for this demo URL
+          const gameName = extractGameNameFromUrl(demoUrl, url);
+          if (gameName) {
+            data.games.push({
+              name: gameName,
+              demoUrl: demoUrl,
+              source: 'demo-url'
+            });
+          }
+        }
+        break; // Use first valid demo URL found
       }
     }
   }
@@ -433,4 +476,31 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
   data.providers = [...new Set(data.providers)];
 
   return data;
+}
+
+// Helper function to extract game name from demo URL or page URL
+function extractGameNameFromUrl(demoUrl: string, pageUrl: string): string | null {
+  // Try to extract from page URL first (more reliable)
+  const pageUrlParts = pageUrl.split('/');
+  const lastPart = pageUrlParts[pageUrlParts.length - 1];
+  if (lastPart && lastPart !== '' && !lastPart.includes('.')) {
+    return lastPart
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim();
+  }
+  
+  // Fallback to demo URL
+  const urlParts = demoUrl.split('/');
+  for (let i = urlParts.length - 1; i >= 0; i--) {
+    const part = urlParts[i];
+    if (part && part.length > 3 && !part.includes('.') && !part.includes('=')) {
+      return part
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase())
+        .trim();
+    }
+  }
+  
+  return null;
 }
