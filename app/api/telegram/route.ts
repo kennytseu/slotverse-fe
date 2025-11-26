@@ -71,6 +71,11 @@ I'll help you manage your slots platform content! 🎰`;
 **/updategame [name] [property] [value]** - Update game info
 **/removegame [name]** - Remove a game
 
+**Content Import:**
+**/copy [URL]** - Copy game content from any URL
+**/import [URL]** - Import multiple games from a page
+**/scrape [URL] [game name]** - Extract specific game data
+
 **Provider Management:**
 **/addprovider [name]** - Add game provider
 **/updateprovider [name] [info]** - Update provider details
@@ -84,13 +89,12 @@ I'll help you manage your slots platform content! 🎰`;
 **/updatehomepage [section] [content]** - Update homepage
 **/stats** - View platform statistics
 
-**Examples:**
-\`/addgame Book of Dead by Play'n GO\`
-\`/updategame Starburst RTP 96.1%\`
-\`/addprovider NetEnt with 200+ games\`
-\`/schedule Big Bass Bonanza for Dec 15\`
+**Import Examples:**
+\`/copy https://slotcatalog.com/slots/sweet-bonanza\`
+\`/import https://pragmaticplay.com/games\`
+\`/scrape https://casino.com/games Sweet Bonanza\`
 
-I'll help manage your slots platform content! 🎲`;
+I'll automatically extract game info and add it to SlotVerse! 🎲`;
 
       await sendMessage(chatId, helpMessage);
       return NextResponse.json({ ok: true });
@@ -194,6 +198,88 @@ I'll help manage your slots platform content! 🎲`;
       return NextResponse.json({ ok: true });
     }
 
+    // /copy command - Copy content from URL
+    if (text.startsWith("/copy ")) {
+      const url = text.replace("/copy ", "").trim();
+      if (!url || !isValidUrl(url)) {
+        await sendMessage(chatId, "❌ Please provide a valid URL.\nExample: `/copy https://slotcatalog.com/slots/sweet-bonanza`");
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendMessage(chatId, `🔗 Copying content from: ${url}\n⏳ Extracting game information...`);
+      
+      try {
+        const result = await callAgentAPI(`Copy and extract slot game content from this URL: ${url}. Analyze the page content, extract game details (name, provider, RTP, volatility, max win, features, description), and add it to SlotVerse platform with proper formatting and metadata.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "copy");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error copying content: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // /import command - Import multiple games from a page
+    if (text.startsWith("/import ")) {
+      const url = text.replace("/import ", "").trim();
+      if (!url || !isValidUrl(url)) {
+        await sendMessage(chatId, "❌ Please provide a valid URL.\nExample: `/import https://pragmaticplay.com/games`");
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendMessage(chatId, `📥 Importing games from: ${url}\n⏳ This may take a moment...`);
+      
+      try {
+        const result = await callAgentAPI(`Import multiple slot games from this URL: ${url}. Scan the page for all available games, extract their details (names, providers, features, etc.), and add them to SlotVerse platform. Focus on getting accurate game information and proper categorization.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "import");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error importing content: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // /scrape command - Extract specific game data
+    if (text.startsWith("/scrape ")) {
+      const parts = text.replace("/scrape ", "").trim().split(" ");
+      if (parts.length < 2) {
+        await sendMessage(chatId, "❌ Please provide URL and game name.\nExample: `/scrape https://casino.com/games Sweet Bonanza`");
+        return NextResponse.json({ ok: true });
+      }
+      
+      const url = parts[0];
+      const gameName = parts.slice(1).join(" ");
+      
+      if (!isValidUrl(url)) {
+        await sendMessage(chatId, "❌ Please provide a valid URL.");
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendMessage(chatId, `🎯 Scraping "${gameName}" from: ${url}\n⏳ Extracting specific game data...`);
+      
+      try {
+        const result = await callAgentAPI(`Scrape specific slot game data for "${gameName}" from this URL: ${url}. Find and extract all available information about this specific game including RTP, volatility, max win, features, screenshots, and description. Add it to SlotVerse with complete metadata.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "scrape");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error scraping game data: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle URLs sent directly (without command)
+    if (text && isValidUrl(text)) {
+      await sendMessage(chatId, `🔗 Detected URL: ${text}\n⏳ Analyzing content...`);
+      
+      try {
+        const result = await callAgentAPI(`Analyze this URL and extract any slot game content: ${text}. If it's a game page, extract the game details. If it's a provider page, extract provider information. If it's a games list, extract multiple games. Add the relevant content to SlotVerse platform.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "url-analysis");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error analyzing URL: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
     // Handle any other text as a general request
     if (text && !text.startsWith("/")) {
       await sendMessage(chatId, `🤖 Processing: "${text}"\n⏳ Let me work on this...`);
@@ -239,7 +325,7 @@ async function callAgentAPI(prompt: string, sessionId: string) {
 
 async function handleAgentResponse(chatId: number, result: any, type: string) {
   if (result.tool_results && result.tool_results.length > 0) {
-    let message = `✅ **${type === 'build' ? 'Built' : type === 'fix' ? 'Fixed' : 'Completed'}!**\n\n`;
+    let message = getResponseHeader(type);
     
     for (const toolResult of result.tool_results) {
       const { tool, result: toolRes } = toolResult;
@@ -257,6 +343,26 @@ async function handleAgentResponse(chatId: number, result: any, type: string) {
             break;
           case 'readFile':
             message += `📖 Read: \`${toolRes.path}\`\n`;
+            break;
+          case 'scrapeUrl':
+            if (toolRes.data) {
+              message += `🔗 **Scraped from:** ${toolRes.url}\n`;
+              message += `🎰 **Games found:** ${toolRes.data.games?.length || 0}\n`;
+              message += `🏢 **Providers found:** ${toolRes.data.providers?.length || 0}\n`;
+              
+              if (toolRes.data.games && toolRes.data.games.length > 0) {
+                message += `\n**Extracted Games:**\n`;
+                toolRes.data.games.slice(0, 5).forEach((game: any) => {
+                  message += `• ${game.name}`;
+                  if (game.provider) message += ` (${game.provider})`;
+                  if (game.rtp) message += ` - RTP: ${game.rtp}`;
+                  message += `\n`;
+                });
+                if (toolRes.data.games.length > 5) {
+                  message += `... and ${toolRes.data.games.length - 5} more games\n`;
+                }
+              }
+            }
             break;
           default:
             message += `🔧 ${tool}: Success\n`;
@@ -277,6 +383,38 @@ async function handleAgentResponse(chatId: number, result: any, type: string) {
     await sendMessage(chatId, `🤖 ${result.reply}`);
   } else {
     await sendMessage(chatId, "✅ Task completed!");
+  }
+}
+
+function getResponseHeader(type: string): string {
+  switch (type) {
+    case 'copy':
+      return `✅ **Content Copied Successfully!**\n\n`;
+    case 'import':
+      return `✅ **Games Imported Successfully!**\n\n`;
+    case 'scrape':
+      return `✅ **Game Data Scraped!**\n\n`;
+    case 'url-analysis':
+      return `✅ **URL Content Analyzed!**\n\n`;
+    case 'addgame':
+      return `✅ **Game Added!**\n\n`;
+    case 'addprovider':
+      return `✅ **Provider Added!**\n\n`;
+    case 'schedule':
+      return `✅ **Release Scheduled!**\n\n`;
+    case 'update':
+      return `✅ **Content Updated!**\n\n`;
+    default:
+      return `✅ **Task Completed!**\n\n`;
+  }
+}
+
+function isValidUrl(string: string): boolean {
+  try {
+    const url = new URL(string);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (_) {
+    return false;
   }
 }
 

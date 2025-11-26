@@ -151,6 +151,32 @@ export const toolDefs = [
         required: []
       }
     }
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "scrapeUrl",
+      description: "Scrape content from a URL to extract slot game information.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "The URL to scrape content from"
+          },
+          targetGame: {
+            type: "string",
+            description: "Optional: specific game name to look for"
+          },
+          extractType: {
+            type: "string",
+            enum: ["game", "provider", "games-list", "auto"],
+            description: "Type of content to extract"
+          }
+        },
+        required: ["url"]
+      }
+    }
   }
 ];
 

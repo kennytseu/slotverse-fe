@@ -198,3 +198,158 @@ export async function handleListFiles({ path = "" }: { path?: string }) {
     };
   }
 }
+
+export async function handleScrapeUrl({ 
+  url, 
+  targetGame, 
+  extractType = "auto" 
+}: { 
+  url: string; 
+  targetGame?: string; 
+  extractType?: "game" | "provider" | "games-list" | "auto" 
+}) {
+  try {
+    // Fetch the webpage content
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Failed to fetch URL: ${response.status} ${response.statusText}`
+      };
+    }
+
+    const html = await response.text();
+    
+    // Extract structured data using common patterns
+    const extractedData = extractSlotGameData(html, url, targetGame, extractType);
+    
+    return {
+      success: true,
+      url,
+      extractType,
+      targetGame,
+      data: extractedData,
+      message: `Successfully extracted ${extractedData.games?.length || 0} games and ${extractedData.providers?.length || 0} providers from ${url}`
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+function extractSlotGameData(html: string, url: string, targetGame?: string, extractType?: string) {
+  const data: any = {
+    games: [],
+    providers: [],
+    metadata: {
+      sourceUrl: url,
+      extractedAt: new Date().toISOString(),
+      extractType
+    }
+  };
+
+  // Common slot game data patterns
+  const gamePatterns = {
+    name: [
+      /<h1[^>]*>([^<]*(?:slot|game|bonanza|book|gates|sweet|big|mega|fire|gold|diamond|lucky|magic|wild|dragon|treasure|fortune|power|royal|super|ultra|extreme)[^<]*)<\/h1>/gi,
+      /<title>([^<]*(?:slot|game|bonanza|book|gates|sweet|big|mega|fire|gold|diamond|lucky|magic|wild|dragon|treasure|fortune|power|royal|super|ultra|extreme)[^<]*)<\/title>/gi,
+      /class="[^"]*game[^"]*"[^>]*>([^<]+)</gi
+    ],
+    rtp: [
+      /rtp[^>]*>([0-9.]+%?)/gi,
+      /return[^>]*>([0-9.]+%?)/gi,
+      /([0-9]{2}\.[0-9]{1,2}%)/g
+    ],
+    provider: [
+      /provider[^>]*>([^<]+)</gi,
+      /developer[^>]*>([^<]+)</gi,
+      /by\s+([A-Za-z\s&']+)(?:\s|<|$)/gi
+    ],
+    volatility: [
+      /volatility[^>]*>(high|medium|low)/gi,
+      /variance[^>]*>(high|medium|low)/gi
+    ],
+    maxWin: [
+      /max[^>]*win[^>]*>([0-9,]+x?)/gi,
+      /maximum[^>]*>([0-9,]+x?)/gi
+    ]
+  };
+
+  // Extract game names
+  for (const pattern of gamePatterns.name) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const gameName = match[1].trim();
+      if (gameName.length > 3 && gameName.length < 100) {
+        if (!targetGame || gameName.toLowerCase().includes(targetGame.toLowerCase())) {
+          data.games.push({
+            name: gameName,
+            source: 'title/heading'
+          });
+        }
+      }
+    }
+  }
+
+  // Extract RTP values
+  for (const pattern of gamePatterns.rtp) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const rtp = match[1];
+      if (data.games.length > 0) {
+        data.games[data.games.length - 1].rtp = rtp;
+      }
+    }
+  }
+
+  // Extract providers
+  for (const pattern of gamePatterns.provider) {
+    let match;
+    while ((match = pattern.exec(html)) !== null) {
+      const provider = match[1].trim();
+      if (provider.length > 2 && provider.length < 50) {
+        data.providers.push(provider);
+        if (data.games.length > 0) {
+          data.games[data.games.length - 1].provider = provider;
+        }
+      }
+    }
+  }
+
+  // Extract JSON-LD structured data if available
+  const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gis);
+  if (jsonLdMatches) {
+    for (const jsonLdMatch of jsonLdMatches) {
+      try {
+        const jsonContent = jsonLdMatch.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+        const structured = JSON.parse(jsonContent);
+        if (structured.name || structured.title) {
+          data.games.push({
+            name: structured.name || structured.title,
+            description: structured.description,
+            provider: structured.author?.name || structured.brand?.name,
+            source: 'json-ld'
+          });
+        }
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+    }
+  }
+
+  // Remove duplicates and clean data
+  data.games = data.games.filter((game, index, self) => 
+    index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
+  );
+  
+  data.providers = [...new Set(data.providers)];
+
+  return data;
+}

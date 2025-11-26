@@ -9,7 +9,8 @@ import {
   handleCreateComponent,
   handleSaveMemory,
   handleGetMemory,
-  handleListFiles
+  handleListFiles,
+  handleScrapeUrl
 } from "@/lib/agent/tool-functions";
 import OpenAI from "openai";
 
@@ -79,6 +80,9 @@ CORE RESPONSIBILITIES:
 - Create promotional content and game descriptions
 - Manage game categories and filtering systems
 - Handle demo game integration and embedding
+- Extract and import content from competitor URLs and game databases
+- Scrape game information from various casino and slot websites
+- Parse and structure game data from external sources
 
 CONTENT MANAGEMENT FOCUS:
 - When adding games: Include provider, release date, RTP, volatility, max win, features
@@ -148,6 +152,9 @@ Current session: ${sessionId}`,
               break;
             case "listFiles":
               result = await handleListFiles(args);
+              break;
+            case "scrapeUrl":
+              result = await handleScrapeUrl(args);
               break;
             default:
               result = { error: `Unknown tool: ${name}` };
