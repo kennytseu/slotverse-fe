@@ -244,8 +244,28 @@ export async function handleScrapeUrl({
   }
 }
 
-function extractSlotGameData(html: string, url: string, targetGame?: string, extractType?: string) {
-  const data: any = {
+interface GameData {
+  name: string;
+  provider?: string;
+  rtp?: string;
+  volatility?: string;
+  maxWin?: string;
+  description?: string;
+  source: string;
+}
+
+interface ExtractedData {
+  games: GameData[];
+  providers: string[];
+  metadata: {
+    sourceUrl: string;
+    extractedAt: string;
+    extractType?: string;
+  };
+}
+
+function extractSlotGameData(html: string, url: string, targetGame?: string, extractType?: string): ExtractedData {
+  const data: ExtractedData = {
     games: [],
     providers: [],
     metadata: {
@@ -345,8 +365,8 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
   }
 
   // Remove duplicates and clean data
-  data.games = data.games.filter((game, index, self) => 
-    index === self.findIndex(g => g.name.toLowerCase() === game.name.toLowerCase())
+  data.games = data.games.filter((game: GameData, index: number, self: GameData[]) => 
+    index === self.findIndex((g: GameData) => g.name.toLowerCase() === game.name.toLowerCase())
   );
   
   data.providers = [...new Set(data.providers)];
