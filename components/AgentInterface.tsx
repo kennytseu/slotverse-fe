@@ -15,7 +15,7 @@ export default function AgentInterface() {
     {
       id: '1',
       type: 'system',
-      content: 'Welcome to SlotVerse AI Developer! I can help you build features, fix bugs, and manage your codebase. What would you like me to work on?',
+      content: 'Welcome to SlotVerse Content Manager! I can help you add new slot games, manage providers, schedule releases, and update platform content. What would you like me to work on?',
       timestamp: new Date()
     }
   ]);
@@ -93,12 +93,12 @@ export default function AgentInterface() {
   };
 
   const quickActions = [
-    "Create a new React component",
-    "Build a contact form",
-    "Add a new API endpoint",
-    "Fix responsive design issues",
-    "Create a user dashboard",
-    "Add authentication system"
+    "Add Sweet Bonanza by Pragmatic Play",
+    "Schedule Big Bass Christmas for Dec 15",
+    "Add NetEnt as a new provider",
+    "Update Starburst RTP to 96.1%",
+    "Create Christmas slots category",
+    "Add upcoming Megaways game"
   ];
 
   return (
@@ -111,10 +111,10 @@ export default function AgentInterface() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-              SlotVerse AI Developer
+              SlotVerse Content Manager
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Autonomous coding assistant
+              Slots platform assistant
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">

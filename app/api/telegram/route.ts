@@ -35,24 +35,28 @@ export async function POST(req: NextRequest) {
 
     // /start
     if (text === "/start") {
-      const welcomeMessage = `🤖 **SlotVerse AI Developer Bot**
+      const welcomeMessage = `🎰 **SlotVerse Content Manager**
 
-Hello ${username}! I'm your autonomous developer assistant.
+Hello ${username}! I'm your slots platform assistant.
 
-**Available Commands:**
-/help - Show this help message
-/id - Get your Telegram ID
-/status - Check bot status
-/build [description] - Build something new
-/fix [description] - Fix an issue
-/deploy - Deploy current changes
+**Content Management:**
+/addgame - Add a new slot game
+/addprovider - Add a game provider
+/schedule - Schedule game release
+/update - Update game information
+/help - Show detailed commands
+
+**Quick Actions:**
+/addgame [game name] by [provider]
+/schedule [game] for [date]
+/update [game] set [property] to [value]
 
 **Examples:**
-• \`/build a contact form component\`
-• \`/fix the navigation menu styling\`
-• \`/build an API endpoint for user registration\`
+• \`/addgame Sweet Bonanza by Pragmatic Play\`
+• \`/schedule Starburst XXXtreme for Dec 1\`
+• \`/update Gates of Olympus set RTP to 96.5%\`
 
-Just describe what you want, and I'll code it for you! 🚀`;
+I'll help you manage your slots platform content! 🎰`;
 
       await sendMessage(chatId, welcomeMessage);
       return NextResponse.json({ ok: true });
@@ -60,20 +64,33 @@ Just describe what you want, and I'll code it for you! 🚀`;
 
     // /help
     if (text === "/help") {
-      const helpMessage = `🛠️ **AI Developer Commands**
+      const helpMessage = `🎰 **SlotVerse Content Commands**
 
-**/build [description]** - Create new features
-**/fix [description]** - Fix bugs or issues  
-**/deploy** - Deploy current changes
-**/status** - Check system status
-**/id** - Get your user ID
+**Game Management:**
+**/addgame [name] by [provider]** - Add new slot game
+**/updategame [name] [property] [value]** - Update game info
+**/removegame [name]** - Remove a game
 
-**Example Usage:**
-\`/build a user dashboard with charts\`
-\`/fix responsive design on mobile\`
-\`/build API for user authentication\`
+**Provider Management:**
+**/addprovider [name]** - Add game provider
+**/updateprovider [name] [info]** - Update provider details
 
-The AI will analyze your request, write the code, and commit it to GitHub automatically! ⚡`;
+**Content Scheduling:**
+**/schedule [game] for [date]** - Schedule game release
+**/calendar** - View upcoming releases
+
+**Platform Features:**
+**/addcategory [name]** - Create game category
+**/updatehomepage [section] [content]** - Update homepage
+**/stats** - View platform statistics
+
+**Examples:**
+\`/addgame Book of Dead by Play'n GO\`
+\`/updategame Starburst RTP 96.1%\`
+\`/addprovider NetEnt with 200+ games\`
+\`/schedule Big Bass Bonanza for Dec 15\`
+
+I'll help manage your slots platform content! 🎲`;
 
       await sendMessage(chatId, helpMessage);
       return NextResponse.json({ ok: true });
@@ -91,19 +108,19 @@ The AI will analyze your request, write the code, and commit it to GitHub automa
       return NextResponse.json({ ok: true });
     }
 
-    // /build command
-    if (text.startsWith("/build ")) {
-      const request = text.replace("/build ", "").trim();
-      if (!request) {
-        await sendMessage(chatId, "❌ Please provide a description of what to build.\nExample: `/build a contact form component`");
+    // /addgame command
+    if (text.startsWith("/addgame ")) {
+      const gameInfo = text.replace("/addgame ", "").trim();
+      if (!gameInfo) {
+        await sendMessage(chatId, "❌ Please provide game information.\nExample: `/addgame Sweet Bonanza by Pragmatic Play`");
         return NextResponse.json({ ok: true });
       }
 
-      await sendMessage(chatId, `🔨 Building: "${request}"\n⏳ Please wait while I work on this...`);
+      await sendMessage(chatId, `🎰 Adding game: "${gameInfo}"\n⏳ Processing game information...`);
       
       try {
-        const result = await callAgentAPI(`Build this: ${request}`, chatId.toString());
-        await handleAgentResponse(chatId, result, "build");
+        const result = await callAgentAPI(`Add a new slot game to SlotVerse platform: ${gameInfo}. Include proper game metadata, provider information, and create the necessary components for displaying this game on the platform.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "addgame");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error: ${error.message}`);
       }
@@ -111,19 +128,59 @@ The AI will analyze your request, write the code, and commit it to GitHub automa
       return NextResponse.json({ ok: true });
     }
 
-    // /fix command
-    if (text.startsWith("/fix ")) {
-      const request = text.replace("/fix ", "").trim();
-      if (!request) {
-        await sendMessage(chatId, "❌ Please provide a description of what to fix.\nExample: `/fix the navigation menu styling`");
+    // /addprovider command
+    if (text.startsWith("/addprovider ")) {
+      const providerInfo = text.replace("/addprovider ", "").trim();
+      if (!providerInfo) {
+        await sendMessage(chatId, "❌ Please provide provider information.\nExample: `/addprovider NetEnt - Premium slot games since 1996`");
         return NextResponse.json({ ok: true });
       }
 
-      await sendMessage(chatId, `🔧 Fixing: "${request}"\n⏳ Analyzing and fixing the issue...`);
+      await sendMessage(chatId, `🏢 Adding provider: "${providerInfo}"\n⏳ Setting up provider profile...`);
       
       try {
-        const result = await callAgentAPI(`Fix this issue: ${request}`, chatId.toString());
-        await handleAgentResponse(chatId, result, "fix");
+        const result = await callAgentAPI(`Add a new game provider to SlotVerse platform: ${providerInfo}. Create provider profile, logo placeholder, and integration for their games.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "addprovider");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // /schedule command
+    if (text.startsWith("/schedule ")) {
+      const scheduleInfo = text.replace("/schedule ", "").trim();
+      if (!scheduleInfo) {
+        await sendMessage(chatId, "❌ Please provide schedule information.\nExample: `/schedule Big Bass Bonanza for December 15, 2024`");
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendMessage(chatId, `📅 Scheduling: "${scheduleInfo}"\n⏳ Adding to release calendar...`);
+      
+      try {
+        const result = await callAgentAPI(`Schedule a slot game release on SlotVerse platform: ${scheduleInfo}. Update the release calendar and create promotional content for the upcoming game.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "schedule");
+      } catch (error: any) {
+        await sendMessage(chatId, `❌ Error: ${error.message}`);
+      }
+      
+      return NextResponse.json({ ok: true });
+    }
+
+    // /update command  
+    if (text.startsWith("/update ")) {
+      const updateInfo = text.replace("/update ", "").trim();
+      if (!updateInfo) {
+        await sendMessage(chatId, "❌ Please provide update information.\nExample: `/update Starburst set RTP to 96.1%`");
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendMessage(chatId, `🔄 Updating: "${updateInfo}"\n⏳ Applying changes...`);
+      
+      try {
+        const result = await callAgentAPI(`Update SlotVerse platform content: ${updateInfo}. Make the necessary changes to game information, provider details, or platform content.`, chatId.toString());
+        await handleAgentResponse(chatId, result, "update");
       } catch (error: any) {
         await sendMessage(chatId, `❌ Error: ${error.message}`);
       }
