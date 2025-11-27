@@ -89,18 +89,10 @@ export async function POST(req: NextRequest) {
 
     // Handle Discord PING immediately (before signature verification)
     if (body.type === 1) { // InteractionType.PING
-      console.log('Responding to Discord PING - skipping signature verification for validation');
-      try {
-        const pongResponse = NextResponse.json({ type: 1 }); // InteractionResponseType.PONG
-        console.log('PONG response created successfully');
-        return pongResponse;
-      } catch (error) {
-        console.error('Error creating PONG response:', error);
-        return new Response(JSON.stringify({ type: 1 }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+      return new Response(JSON.stringify({ type: 1 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     // Only verify signature for non-PING requests
