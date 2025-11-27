@@ -8,6 +8,7 @@ import {
   updateProviderGameCount,
   testConnection 
 } from "@/lib/database/mysql";
+import { createScrapingJob } from "@/lib/database/scraping-jobs";
 import { handleScrapeUrl } from "@/lib/agent/tool-functions";
 import { writeFile } from "@/lib/agent/git";
 import { scrapeProviderDirectory } from "@/lib/utils/provider-scraper";
@@ -250,23 +251,47 @@ async function handleCopyCommand(options: any[], body: any) {
     });
   }
 
-  // Send immediate response to Discord (must be within 3 seconds)
-  const immediateResponse = NextResponse.json({
-    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-    data: {
-      content: `🔗 **Content Scraping Started**\n\n📝 **URL:** ${url}\n\n⏳ Extracting game information and downloading images... This may take a moment.\n\n🔔 Your team will be notified when complete!`
-    }
-  });
+  try {
+    // Extract Discord info safely
+    const channelId = String(body.channel_id);
+    const token = String(body.token);
+    const requestedBy = body.member?.user?.username || body.user?.username || 'Unknown';
 
-  // Process the scraping in the background (don't await)
-  // Extract values safely to avoid Proxy issues
-  const channelId = String(body.channel_id);
-  const token = String(body.token);
-  
-  // Process the scraping in the background (don't await)
-  processScraping(url, channelId, token).catch(console.error);
+    // Create scraping job in database (instant operation)
+    const jobId = await createScrapingJob({
+      url: url,
+      status: 'pending',
+      discord_channel_id: channelId,
+      discord_interaction_token: token,
+      requested_by: requestedBy
+    });
 
-  return immediateResponse;
+    console.log(`[Queue] Created scraping job ${jobId} for URL: ${url}`);
+
+    // Send immediate response to Discord (within 3 seconds)
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `✅ **Scraping Job Queued**\n\n📝 **URL:** ${url}\n🆔 **Job ID:** #${jobId}\n\n⏳ Your request has been added to the processing queue. Our background worker will process this shortly.\n\n🔔 You'll be notified here when the scraping is complete!`,
+        embeds: [{
+          color: 0x3498db, // Blue
+          timestamp: new Date().toISOString(),
+          footer: { text: "SlotVerse Queue System • Job queued successfully" }
+        }]
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[Queue] Failed to create scraping job:', error);
+    
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `❌ **Failed to Queue Job**\n\nError: ${error.message}\n\nPlease try again or contact support.`,
+        flags: 64 // Ephemeral
+      }
+    });
+  }
 }
 
 async function processScraping(url: string, channelId?: string, interactionToken?: string) {

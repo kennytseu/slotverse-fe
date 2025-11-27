@@ -4,7 +4,7 @@ require('dotenv').config({ path: '.env.local' });
 async function updateDiscordWebhookUrl() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_BOT_TOKEN;
-  const newWebhookUrl = 'https://slotverse.net/api/discord';
+  const newWebhookUrl = 'https://squabbier-jay-tectonically.ngrok-free.dev/api/discord';
 
   if (!applicationId || !botToken) {
     console.error('❌ Missing DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN in environment variables');
