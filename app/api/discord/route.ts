@@ -261,7 +261,8 @@ async function processScraping(url: string, channelId?: string, interactionToken
     console.log('TESTING: Skipping scraping, testing Discord notifications...');
     const scrapeResult = {
       success: false,
-      error: 'Testing Discord notifications - scraping temporarily disabled'
+      error: 'Testing Discord notifications - scraping temporarily disabled',
+      data: { games: [] }
     };
     
     if (!scrapeResult.success) {
