@@ -4,11 +4,17 @@ export async function POST(req: NextRequest) {
   try {
     console.log('=== Simple Discord Endpoint Called ===');
     
-    const rawBody = await req.text();
-    console.log('Raw body length:', rawBody.length);
-    
-    const body = JSON.parse(rawBody);
-    console.log('Parsed body type:', body.type);
+    let body;
+    try {
+      body = await req.json();
+      console.log('JSON parsed directly, type:', body.type);
+    } catch (jsonError) {
+      console.error('JSON parsing failed:', jsonError);
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
     // Handle Discord PING
     if (body.type === 1) {
@@ -19,7 +25,7 @@ export async function POST(req: NextRequest) {
       });
     }
     
-    console.log('Non-PING request received');
+    console.log('Non-PING request received, type:', body.type);
     return new Response(JSON.stringify({ error: 'Not implemented' }), {
       status: 501,
       headers: { 'Content-Type': 'application/json' }
