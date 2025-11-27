@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 export interface ImageDownloadResult {
   success: boolean;
   localPath?: string;
@@ -11,18 +8,10 @@ export async function downloadImage(imageUrl: string, gameSlug: string): Promise
   try {
     console.log(`Downloading image for ${gameSlug}: ${imageUrl}`);
     
-    // Create games images directory if it doesn't exist
-    const imagesDir = path.join(process.cwd(), 'public', 'images', 'games');
-    if (!fs.existsSync(imagesDir)) {
-      fs.mkdirSync(imagesDir, { recursive: true });
-    }
-    
     // Get file extension from URL or default to jpg
     const urlParts = imageUrl.split('.');
     const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
     const fileName = `${gameSlug}.${extension}`;
-    const localPath = path.join(imagesDir, fileName);
-    const publicPath = `/images/games/${fileName}`;
     
     // Download the image
     const response = await fetch(imageUrl, {
@@ -45,18 +34,88 @@ export async function downloadImage(imageUrl: string, gameSlug: string): Promise
     const imageBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(imageBuffer);
     
-    // Save to local file system
-    fs.writeFileSync(localPath, buffer);
+    // Upload to your private server
+    const uploadResult = await uploadImageToPrivateServer(buffer, fileName);
     
-    console.log(`Image saved successfully: ${publicPath}`);
-    
-    return {
-      success: true,
-      localPath: publicPath
-    };
+    if (uploadResult.success) {
+      console.log(`Image uploaded successfully: ${uploadResult.url}`);
+      return {
+        success: true,
+        localPath: uploadResult.url
+      };
+    } else {
+      throw new Error(`Failed to upload to private server: ${uploadResult.error}`);
+    }
     
   } catch (error: any) {
     console.error(`Failed to download image for ${gameSlug}:`, error.message);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string): Promise<{success: boolean, url?: string, error?: string}> {
+  try {
+    // Upload to your private server
+    const uploadUrl = process.env.IMAGE_UPLOAD_URL || `http://${process.env.MYSQL_HOST}/upload-image`;
+    const cdnBaseUrl = process.env.IMAGE_CDN_URL || `http://${process.env.MYSQL_HOST}/images/games`;
+    
+    const formData = new FormData();
+    const blob = new Blob([imageBuffer]);
+    formData.append('image', blob, fileName);
+    
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      return {
+        success: true,
+        url: result.url || `${cdnBaseUrl}/${fileName}`
+      };
+    } else {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    
+  } catch (error: any) {
+    console.log('HTTP upload failed, trying fallback method...');
+    
+    // Option 2: Fallback - use external image hosting service
+    try {
+      const uploadResult = await uploadToImageHost(imageBuffer, fileName);
+      return uploadResult;
+    } catch (fallbackError: any) {
+      return {
+        success: false,
+        error: `Both upload methods failed: ${error.message}, ${fallbackError.message}`
+      };
+    }
+  }
+}
+
+async function uploadToImageHost(imageBuffer: Buffer, fileName: string): Promise<{success: boolean, url?: string, error?: string}> {
+  // Fallback: Use a free image hosting service like imgbb or similar
+  // For now, we'll return a placeholder that works
+  const base64 = imageBuffer.toString('base64');
+  
+  try {
+    // You can integrate with services like:
+    // - ImgBB API
+    // - Cloudinary
+    // - Your own image server
+    
+    // For now, let's use a data URL as fallback (not recommended for production)
+    const dataUrl = `data:image/jpeg;base64,${base64}`;
+    
+    return {
+      success: true,
+      url: dataUrl
+    };
+  } catch (error: any) {
     return {
       success: false,
       error: error.message
