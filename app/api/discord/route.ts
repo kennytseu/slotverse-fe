@@ -299,11 +299,17 @@ async function processScraping(url: string, channelId?: string, interactionToken
   try {
     logs.push(`🚀 Starting scrape: ${url}`);
     await sendDebugFollowUp("1", "Background processing started");
+    
+    // Add delay to respect Discord rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Call the actual scraping function with a timeout
     let scrapeResult;
     try {
       await sendDebugFollowUp("2", "Initiating robust scraper");
+      
+      // Add delay before scraping starts
+      await new Promise(resolve => setTimeout(resolve, 1000));
       scrapeResult = await Promise.race([
         handleScrapeUrl({ url }),
         new Promise((_, reject) =>
@@ -315,6 +321,10 @@ async function processScraping(url: string, channelId?: string, interactionToken
       logs.push(`⏰ Timeout: ${timeoutError.message}`);
       console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
       await sendDebugFollowUp("ERROR", `Scraping timeout after ${duration}ms: ${timeoutError.message}`);
+      
+      // Add delay before error handling
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       scrapeResult = {
         success: false,
         error: timeoutError.message || 'Unknown timeout error'
@@ -326,6 +336,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
       const duration = Date.now() - startTime;
       console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
       await sendDebugFollowUp("ERROR", `Scraping failed: ${scrapeResult.error}`);
+      
+      // Add delay before error notification
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Send failure notification to Discord
       if (channelId && interactionToken) {
@@ -348,11 +361,17 @@ async function processScraping(url: string, channelId?: string, interactionToken
     }
 
     await sendDebugFollowUp("3", `Scraping successful! Found ${scrapeResult.data?.games?.length || 0} games`);
+    
+    // Add delay before database processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Process games and save to database
     const games = scrapeResult.data?.games || [];
     logs.push(`📊 Processing ${games.length} games`);
     await sendDebugFollowUp("4", `Processing ${games.length} games for database`);
+    
+    // Add delay before game processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
     const savedGames = [];
 
     // TEMPORARY: Skip game processing during test
@@ -396,6 +415,10 @@ async function processScraping(url: string, channelId?: string, interactionToken
     const duration = Date.now() - startTime;
     console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
     await sendDebugFollowUp("5", `Database processing complete: ${savedGames.length} games saved`);
+    
+    // Add delay before final notification
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Send appropriate notification to Discord based on results
     if (channelId && interactionToken) {
       try {
