@@ -254,7 +254,11 @@ async function handleCopyCommand(options: any[], body: any) {
 async function processScraping(url: string, channelId?: string, interactionToken?: string) {
   try {
     console.log(`[processScraping] Starting for URL: ${url}`);
-    console.log(`[processScraping] Channel ID: ${channelId}, Interaction Token: ${interactionToken}`);
+    console.log(`[processScraping] About to log channelId...`);
+    console.log(`[processScraping] Channel ID: ${String(channelId)}`);
+    console.log(`[processScraping] About to log interactionToken...`);
+    console.log(`[processScraping] Interaction Token: ${interactionToken ? 'SET' : 'NULL/UNDEFINED'}`);
+    console.log(`[processScraping] Both parameters logged successfully`);
 
     // Call the actual scraping function with a timeout
     let scrapeResult;
