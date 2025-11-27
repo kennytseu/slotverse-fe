@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,13 +18,17 @@ export async function POST(req: NextRequest) {
     
     // Handle Discord PING
     if (body.type === 1) {
-      console.log('About to send PONG response');
-      const response = new Response('{"type":1}', {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      console.log('PONG response created, returning...');
-      return response;
+      console.log('About to send PONG response with NextResponse');
+      try {
+        const response = NextResponse.json({ type: 1 });
+        console.log('NextResponse PONG created successfully');
+        return response;
+      } catch (error) {
+        console.error('NextResponse failed, trying native Response:', error);
+        return new Response('{"type":1}', {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
     
     console.log('Non-PING request received, type:', body.type);
