@@ -208,55 +208,53 @@ export async function handleScrapeUrl({
   targetGame?: string; 
   extractType?: "game" | "provider" | "games-list" | "auto" 
 }) {
-  console.log(`[handleScrapeUrl] Function called with URL: ${url}`);
-  console.log(`[handleScrapeUrl] Skipping parameter logging, proceeding to scraping...`);
+  console.log(`[handleScrapeUrl] 🚀 Starting robust scraping for: ${url}`);
   
   try {
-    console.log(`[handleScrapeUrl] Entering try block...`);
-    console.log(`[handleScrapeUrl] Starting scrape process...`);
+    // Import the robust scraper
+    const { robustScraper } = await import('@/lib/utils/robust-scraper');
     
-    // Simple fetch without AbortController first to test
-    console.log(`[handleScrapeUrl] About to call fetch...`);
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
+    // Use the robust scraper with multiple strategies
+    const result = await robustScraper.scrapeUrl(url, targetGame);
     
-    console.log(`[handleScrapeUrl] Fetch completed, status: ${response.status}`);
-
-    if (!response.ok) {
-      console.log(`[handleScrapeUrl] Response not OK: ${response.status} ${response.statusText}`);
+    if (!result.success) {
+      console.log(`[handleScrapeUrl] ❌ All scraping strategies failed: ${result.error}`);
       return {
         success: false,
-        error: `Failed to fetch URL: ${response.status} ${response.statusText}`
+        error: result.error || 'All scraping strategies failed'
       };
     }
 
-    console.log(`[handleScrapeUrl] Reading response text...`);
-    const html = await response.text();
-    console.log(`[handleScrapeUrl] HTML received, length: ${html.length} characters`);
+    const games = result.data?.games || [];
+    const providers = result.data?.providers || [];
     
-    // Extract structured data using common patterns
-    console.log(`[handleScrapeUrl] Extracting game data...`);
-    const extractedData = extractSlotGameData(html, url, targetGame, extractType);
-    console.log(`[handleScrapeUrl] Extraction complete: ${extractedData.games?.length || 0} games found`);
+    console.log(`[handleScrapeUrl] ✅ Success! Found ${games.length} games, ${providers.length} providers`);
+    console.log(`[handleScrapeUrl] Strategy used: ${result.data?.metadata.strategy}`);
+    console.log(`[handleScrapeUrl] Response time: ${result.data?.metadata.responseTime}ms`);
     
     return {
       success: true,
       url,
       extractType,
       targetGame,
-      data: extractedData,
-      message: `Successfully extracted ${extractedData.games?.length || 0} games and ${extractedData.providers?.length || 0} providers from ${url}`
+      data: {
+        games,
+        providers,
+        metadata: {
+          sourceUrl: url,
+          extractedAt: result.data?.metadata.extractedAt || new Date().toISOString(),
+          extractType,
+          strategy: result.data?.metadata.strategy,
+          responseTime: result.data?.metadata.responseTime
+        }
+      },
+      message: `Successfully extracted ${games.length} games using ${result.data?.metadata.strategy} strategy (${result.data?.metadata.responseTime}ms)`
     };
   } catch (error: any) {
-    console.error(`[handleScrapeUrl] General error:`, error);
-    console.error(`[handleScrapeUrl] Error name:`, error.name);
-    console.error(`[handleScrapeUrl] Error message:`, error.message);
+    console.error(`[handleScrapeUrl] ❌ Critical error:`, error);
     return {
       success: false,
-      error: error.message || 'Unknown scraping error'
+      error: `Scraping system error: ${error.message}`
     };
   }
 }

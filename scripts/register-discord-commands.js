@@ -76,12 +76,21 @@ async function registerCommands() {
   try {
     console.log('🤖 Registering Discord slash commands...');
 
-    // Get guild ID from environment or use a default test guild
-    const guildId = process.env.DISCORD_GUILD_ID || process.env.ALLOWED_DISCORD_SERVERS?.split(',')[0];
+    // Get guild IDs from environment
+    const allowedServers = process.env.ALLOWED_DISCORD_SERVERS?.split(',') || [];
+    const guildId = process.env.DISCORD_GUILD_ID;
     
-    if (guildId) {
+    if (allowedServers.length > 0) {
+      // Register commands for all allowed servers
+      for (const serverId of allowedServers) {
+        console.log(`📍 Registering commands for guild: ${serverId.trim()}`);
+        await rest.put(
+          Routes.applicationGuildCommands(process.env.DISCORD_APPLICATION_ID, serverId.trim()),
+          { body: commands },
+        );
+      }
+    } else if (guildId) {
       console.log(`📍 Registering commands for guild: ${guildId}`);
-      // Register commands for specific guild (immediate)
       await rest.put(
         Routes.applicationGuildCommands(process.env.DISCORD_APPLICATION_ID, guildId),
         { body: commands },

@@ -13,14 +13,30 @@ import { writeFile } from "@/lib/agent/git";
 
 import { verifyKey } from 'discord-interactions';
 
+// Safe logging helper to bypass Vercel censoring
+function safe(value: any) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return "<unclonable>";
+  }
+}
+
+function debug(label: string, value: any) {
+  try {
+    const v = safe(value);
+    console.log(label, v);
+  } catch {
+    console.log(label, "<hidden-by-vercel>");
+  }
+}
+
 // Discord webhook verification
 async function verifyDiscordRequest(request: NextRequest, body: string) {
   const signature = request.headers.get('x-signature-ed25519');
   const timestamp = request.headers.get('x-signature-timestamp');
   const publicKey = process.env.DISCORD_PUBLIC_KEY;
   
-  console.log('Signature verification attempt:');
-  console.log('- Has public key:', !!publicKey);
   
   // Skip verification in development if no public key is set
   if (!publicKey && process.env.NODE_ENV === 'development') {
@@ -64,19 +80,13 @@ const InteractionResponseType = {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== Discord Webhook Called ===');
-    console.log('Headers:', Object.fromEntries(req.headers.entries()));
-    
     // Get raw body for signature verification
     const rawBody = await req.text();
-    console.log('Raw body length:', rawBody.length);
     
     // Parse body first to check if it's a PING
     let body;
     try {
-      console.log('Parsing JSON body...');
       body = JSON.parse(rawBody);
-      console.log('JSON parsed successfully, type:', body.type);
     } catch (e) {
       console.error('Failed to parse JSON:', e);
       console.error('Raw body that failed to parse:', rawBody.substring(0, 200) + '...');
@@ -88,7 +98,6 @@ export async function POST(req: NextRequest) {
       console.error('Discord signature verification failed');
       return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
-    console.log('✅ Discord signature verification passed');
 
     // Handle Discord PING after signature verification
     if (body.type === 1) { // InteractionType.PING
@@ -245,44 +254,37 @@ async function handleCopyCommand(options: any[], body: any) {
     }
   });
 
-  // Debug: Log what's actually in the Discord body
-  console.log('[DEBUG] Discord body keys:', Object.keys(body));
-  console.log('[DEBUG] body.channel_id:', body.channel_id);
-  console.log('[DEBUG] body.channel:', body.channel ? Object.keys(body.channel) : 'undefined');
-  console.log('[DEBUG] body.token:', body.token ? 'SET' : 'UNDEFINED');
+  // Process the scraping in the background (don't await)
+  // Extract values safely to avoid Proxy issues
+  const channelId = String(body.channel_id);
+  const token = String(body.token);
   
   // Process the scraping in the background (don't await)
-  processScraping(url, body.channel_id, body.token).catch(console.error);
+  processScraping(url, channelId, token).catch(console.error);
 
   return immediateResponse;
 }
 
 async function processScraping(url: string, channelId?: string, interactionToken?: string) {
+  const logs: string[] = [];
+  const startTime = Date.now();
+  
   try {
-    console.log(`[processScraping] Starting for URL: ${url}`);
-    console.log(`[processScraping] About to log channelId...`);
-    console.log(`[processScraping] typeof channelId = ${typeof channelId}`);
-    console.log(`[processScraping] channelId raw =`, channelId);
-    console.log(`[processScraping] next: converting to String...`);
-    console.log(`[processScraping] Channel ID: ${String(channelId)}`);
-    console.log(`[processScraping] About to log interactionToken...`);
-    console.log(`[processScraping] Interaction Token: ${interactionToken ? 'SET' : 'NULL/UNDEFINED'}`);
-    console.log(`[processScraping] Both parameters logged successfully`);
+    logs.push(`🚀 Starting scrape: ${url}`);
 
     // Call the actual scraping function with a timeout
     let scrapeResult;
     try {
-      console.log('[processScraping] About to call handleScrapeUrl...');
       scrapeResult = await Promise.race([
         handleScrapeUrl({ url }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
+          setTimeout(() => reject(new Error('Scraping timeout after 60 seconds')), 60 * 1000)
         )
       ]) as any;
-      console.log('[processScraping] handleScrapeUrl completed:', scrapeResult?.success);
     } catch (timeoutError: any) {
-      console.error('[processScraping] Timeout or other error:', timeoutError);
-      console.error('[processScraping] Error stack:', timeoutError.stack);
+      const duration = Date.now() - startTime;
+      logs.push(`⏰ Timeout: ${timeoutError.message}`);
+      console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
       scrapeResult = {
         success: false,
         error: timeoutError.message || 'Unknown timeout error'
@@ -290,11 +292,12 @@ async function processScraping(url: string, channelId?: string, interactionToken
     }
     
     if (!scrapeResult.success) {
-      console.error('Scraping failed:', scrapeResult.error);
+      logs.push(`❌ Scraping failed: ${scrapeResult.error}`);
+      const duration = Date.now() - startTime;
+      console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
       
       // Send failure notification to Discord
       if (channelId && interactionToken) {
-        console.log('Sending Discord failure notification...');
         try {
           await sendDiscordFollowUp(interactionToken, {
             content: `❌ **Content Scraping Failed**\n\n🔗 **URL:** ${url}\n\n**Error:** ${scrapeResult.error}\n\n💡 **Troubleshooting:**\n• Check if the URL is accessible\n• Verify the site structure hasn't changed\n• Try a different game URL`,
@@ -304,7 +307,6 @@ async function processScraping(url: string, channelId?: string, interactionToken
               footer: { text: "SlotVerse Content Scraper" }
             }]
           });
-          console.log('Discord failure notification sent successfully');
         } catch (discordError) {
           console.error('Failed to send Discord failure notification:', discordError);
         }
@@ -316,6 +318,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
 
     // Process games and save to database
     const games = scrapeResult.data?.games || [];
+    logs.push(`📊 Processing ${games.length} games`);
     const savedGames = [];
 
     // TEMPORARY: Skip game processing during test
@@ -355,7 +358,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
     }
     } // End of success check
 
-    console.log(`Scraping completed: ${savedGames.length} games saved`);
+    logs.push(`✅ Completed: ${savedGames.length} games saved`);
+    const duration = Date.now() - startTime;
+    console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
     // Send success notification to Discord
     if (channelId && interactionToken) {
       console.log('Sending Discord success notification...');
@@ -381,8 +386,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
   }
 
   } catch (error: any) {
-    console.error('[processScraping] Outer catch - Scraping process error:', error);
-    console.error('[processScraping] Error stack:', error.stack);
+    const duration = Date.now() - startTime;
+    logs.push(`💥 Process error: ${error.message || String(error)}`);
+    console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
     
     // Send error notification to Discord
     if (channelId && interactionToken) {
@@ -537,7 +543,11 @@ async function handleBuildCommand(options: any[], body: any) {
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction, body.channel_id, body.token, 'build').catch(console.error);
+  // Extract values safely to avoid Proxy issues
+  const channelId = String(body.channel_id);
+  const token = String(body.token);
+  
+  processAIRequest(instruction, channelId, token, 'build').catch(console.error);
 
   return immediateResponse;
 }
@@ -568,7 +578,11 @@ async function handleEditCommand(options: any[], body: any) {
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction, body.channel_id, body.token, 'edit').catch(console.error);
+  // Extract values safely to avoid Proxy issues
+  const channelId = String(body.channel_id);
+  const token = String(body.token);
+  
+  processAIRequest(instruction, channelId, token, 'edit').catch(console.error);
 
   return immediateResponse;
 }
