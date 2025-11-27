@@ -19,6 +19,12 @@ function verifyDiscordRequest(request: NextRequest, body: string) {
   const timestamp = request.headers.get('x-signature-timestamp');
   const publicKey = process.env.DISCORD_PUBLIC_KEY;
   
+  console.log('Signature verification attempt:');
+  console.log('- Has signature:', !!signature);
+  console.log('- Has timestamp:', !!timestamp);
+  console.log('- Has public key:', !!publicKey);
+  console.log('- Public key length:', publicKey?.length);
+  
   // Skip verification in development if no public key is set
   if (!publicKey && process.env.NODE_ENV === 'development') {
     console.log('⚠️ Skipping Discord signature verification in development');
@@ -31,9 +37,11 @@ function verifyDiscordRequest(request: NextRequest, body: string) {
   }
   
   try {
-    return verifyKey(body, signature, timestamp, publicKey);
+    const isValid = verifyKey(body, signature, timestamp, publicKey);
+    console.log('Signature verification result:', isValid);
+    return isValid;
   } catch (error) {
-    console.error('Discord signature verification failed:', error);
+    console.error('Discord signature verification error:', error);
     return false;
   }
 }
@@ -78,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Handle Discord PING immediately (before signature verification)
     if (body.type === InteractionType.PING) {
-      console.log('Responding to Discord PING');
+      console.log('Responding to Discord PING - skipping signature verification for validation');
       return NextResponse.json({ type: InteractionResponseType.PONG });
     }
     
