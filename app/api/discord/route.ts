@@ -259,12 +259,21 @@ async function processScraping(url: string, channelId?: string, interactionToken
     console.log(`[processScraping] Channel ID: ${channelId}, Interaction Token: ${interactionToken}`);
 
     // Call the actual scraping function with a timeout
-    const scrapeResult = await Promise.race([
-      handleScrapeUrl({ url }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
-      )
-    ]) as any;
+    let scrapeResult;
+    try {
+      scrapeResult = await Promise.race([
+        handleScrapeUrl({ url }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
+        )
+      ]) as any;
+    } catch (timeoutError: any) {
+      console.error('[processScraping] Timeout or other error:', timeoutError);
+      scrapeResult = {
+        success: false,
+        error: timeoutError.message || 'Unknown timeout error'
+      };
+    }
     
     if (!scrapeResult.success) {
       console.error('Scraping failed:', scrapeResult.error);
@@ -357,29 +366,31 @@ async function processScraping(url: string, channelId?: string, interactionToken
     console.error('Missing channelId or interactionToken for Discord success notification');
   }
 
-  } catch (error) {
-    console.error('Scraping process error:', error);
+  } catch (error: any) {
+    console.error('[processScraping] Outer catch - Scraping process error:', error);
+    console.error('[processScraping] Error stack:', error.stack);
     
     // Send error notification to Discord
     if (channelId && interactionToken) {
-      console.log('Sending Discord error notification...');
+      console.log('[processScraping] Sending Discord error notification...');
       try {
         await sendDiscordFollowUp(interactionToken, {
-        content: `❌ **Scraping Process Error**\n\n🔗 **URL:** ${url}\n\n**Error:** ${error instanceof Error ? error.message : String(error)}\n\nPlease try again or contact support if the issue persists.`,
-        embeds: [{
-          color: 0xff0000,
-          timestamp: new Date().toISOString(),
-          footer: { text: "SlotVerse Content Scraper" }
-        }]
-      });
-      console.log('Discord error notification sent successfully');
-    } catch (discordError) {
-      console.error('Failed to send Discord error notification:', discordError);
+          content: `❌ **Scraping Process Error**\n\n🔗 **URL:** ${url}\n\n**Error:** ${error instanceof Error ? error.message : String(error)}\n\nPlease try again or contact support if the issue persists.`,
+          embeds: [{
+            color: 0xff0000,
+            timestamp: new Date().toISOString(),
+            footer: { text: "SlotVerse Content Scraper" }
+          }]
+        });
+        console.log('[processScraping] Discord error notification sent successfully');
+      } catch (discordError: any) {
+        console.error('[processScraping] Failed to send Discord error notification:', discordError);
+      }
+    } else {
+      console.error('[processScraping] Missing channelId or interactionToken for Discord error notification');
     }
-  } else {
-    console.error('Missing channelId or interactionToken for Discord error notification');
   }
-  }
+}
 }
 
 async function handleDbSetupCommand() {
