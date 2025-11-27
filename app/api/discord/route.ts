@@ -60,14 +60,33 @@ const InteractionResponseType = {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('=== Discord Webhook Called ===');
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
+    
     // Get raw body for signature verification
     const rawBody = await req.text();
+    console.log('Raw body length:', rawBody.length);
     
-    if (!verifyDiscordRequest(req, rawBody)) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    // Parse body first to check if it's a PING
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    const body = JSON.parse(rawBody);
+    // Handle Discord PING immediately (before signature verification)
+    if (body.type === InteractionType.PING) {
+      console.log('Responding to Discord PING');
+      return NextResponse.json({ type: InteractionResponseType.PONG });
+    }
+    
+    // Only verify signature for non-PING requests
+    if (!verifyDiscordRequest(req, rawBody)) {
+      console.error('Discord signature verification failed');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
     const { type, data, member, user } = body;
 
     // Handle Discord ping
@@ -142,6 +161,15 @@ export async function POST(req: NextRequest) {
     console.error('Discord webhook error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json({ 
+    message: 'Discord webhook endpoint is working',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    hasPublicKey: !!process.env.DISCORD_PUBLIC_KEY
+  });
 }
 
 async function handleStatusCommand() {
