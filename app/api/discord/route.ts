@@ -49,6 +49,12 @@ async function verifyDiscordRequest(request: NextRequest, body: string) {
     return false;
   }
   
+  // Skip verification in development mode for local testing
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[DEV] Skipping Discord signature verification for local testing');
+    return true;
+  }
+  
   try {
     const isValid = await verifyKey(body, signature, timestamp, publicKey);
     return isValid;
