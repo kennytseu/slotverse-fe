@@ -531,12 +531,12 @@ async function handleBuildCommand(options: any[]) {
   const immediateResponse = NextResponse.json({
     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
-      content: `🤖 **AI Development Task Started**\n\n📝 **Instruction:** ${instruction}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🚀 Changes will be committed to GitHub and auto-deployed when complete!`
+      content: `🤖 **AI Development Task Started**\n\n📝 **Instruction:** ${instruction}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🔔 **Your team will be notified when complete!**`
     }
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction).catch(console.error);
+  processAIRequest(instruction, body.channel_id, 'build').catch(console.error);
 
   return immediateResponse;
 }
@@ -562,18 +562,18 @@ async function handleEditCommand(options: any[]) {
   const immediateResponse = NextResponse.json({
     type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
     data: {
-      content: `✏️ **File Edit Task Started**\n\n📁 **File:** ${filePath}\n📝 **Changes:** ${changes.substring(0, 150)}${changes.length > 150 ? '...' : ''}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🚀 Changes will be committed to GitHub and auto-deployed when complete!`
+      content: `✏️ **File Edit Task Started**\n\n📁 **File:** ${filePath}\n📝 **Changes:** ${changes.substring(0, 150)}${changes.length > 150 ? '...' : ''}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🔔 **Your team will be notified when complete!**`
     }
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction).catch(console.error);
+  processAIRequest(instruction, body.channel_id, 'edit').catch(console.error);
 
   return immediateResponse;
 }
 
 // Background function to process AI requests without blocking Discord response
-async function processAIRequest(instruction: string): Promise<void> {
+async function processAIRequest(instruction: string, channelId?: string, taskType: string = 'build'): Promise<void> {
   try {
     console.log('Processing AI request in background:', instruction);
     
@@ -591,13 +591,76 @@ async function processAIRequest(instruction: string): Promise<void> {
 
     if (!agentResponse.ok) {
       console.error('AI agent request failed:', agentResponse.status);
+      
+      // Send failure notification to Discord
+      if (channelId) {
+        await sendDiscordFollowUp(channelId, {
+          content: `❌ **${taskType === 'build' ? 'Build' : 'Edit'} Task Failed**\n\nThe AI agent encountered an error (${agentResponse.status}). Please try again or check the logs.`,
+          embeds: [{
+            title: "🔍 Troubleshooting",
+            color: 0xff0000,
+            description: "• Check if the instruction is clear\n• Verify the AI agent is running\n• Try a simpler request first",
+          }]
+        });
+      }
       return;
     }
 
     const result = await agentResponse.json();
     console.log('AI agent request completed successfully');
     
+    // Send success notification to Discord
+    if (channelId) {
+      await sendDiscordFollowUp(channelId, {
+        content: `✅ **${taskType === 'build' ? 'Build' : 'Edit'} Task Completed!**\n\n🎯 **Instruction:** ${instruction.substring(0, 100)}${instruction.length > 100 ? '...' : ''}\n\n🚀 **Status:** Changes have been committed to GitHub and deployed automatically!`,
+        embeds: [{
+          title: "🔗 Check the Results",
+          color: 0x00ff00,
+          fields: [
+            { name: "🌐 Website", value: "[slotverse.net](https://slotverse.net)", inline: true },
+            { name: "📝 GitHub", value: "[View Commits](https://github.com/kennytseu/slotverse-fe/commits/main)", inline: true },
+            { name: "⚡ Vercel", value: "[Deployment Logs](https://vercel.com/slotverse/slotverse)", inline: true }
+          ],
+          footer: { text: "SlotVerse AI Agent • Task completed successfully" }
+        }]
+      });
+    }
+    
   } catch (error) {
     console.error('Background AI request error:', error);
+    
+    // Send error notification to Discord
+    if (channelId) {
+      await sendDiscordFollowUp(channelId, {
+        content: `❌ **${taskType === 'build' ? 'Build' : 'Edit'} Task Error**\n\nAn unexpected error occurred while processing your request. Please try again.`,
+        embeds: [{
+          title: "🐛 Error Details",
+          color: 0xff0000,
+          description: `\`\`\`${error instanceof Error ? error.message : String(error)}\`\`\``,
+        }]
+      });
+    }
+  }
+}
+
+// Function to send follow-up messages to Discord
+async function sendDiscordFollowUp(channelId: string, message: any): Promise<void> {
+  try {
+    const discordApiUrl = `https://discord.com/api/v10/channels/${channelId}/messages`;
+    
+    const response = await fetch(discordApiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message)
+    });
+
+    if (!response.ok) {
+      console.error('Failed to send Discord follow-up:', response.status);
+    }
+  } catch (error) {
+    console.error('Discord follow-up error:', error);
   }
 }
