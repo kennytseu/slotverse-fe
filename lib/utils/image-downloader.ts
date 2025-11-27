@@ -90,7 +90,7 @@ async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string)
     console.log('Using placeholder URL as fallback');
     return {
       success: true,
-      url: `https://picsum.photos/seed/${gameSlug}/300/200` // Use placeholder as fallback
+      url: `https://picsum.photos/seed/${fileName}/300/200` // Use placeholder as fallback
     };
   }
 }
