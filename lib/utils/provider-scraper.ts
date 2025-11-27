@@ -36,7 +36,7 @@ class ProviderScraper {
         console.log(`[ProviderScraper] Page URL: ${pageUrl}`);
         
         // Scrape the page
-        const scrapeResult = await robustScraper.scrape(pageUrl, undefined, 'providers');
+        const scrapeResult = await robustScraper.scrapeUrl(pageUrl, undefined);
         
         if (!scrapeResult.success || !scrapeResult.html) {
           console.error(`[ProviderScraper] Failed to scrape page ${currentPage}:`, scrapeResult.error);
