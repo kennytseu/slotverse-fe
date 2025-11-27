@@ -86,11 +86,11 @@ async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string)
   } catch (error: any) {
     console.log('HTTP upload failed, trying fallback method...', error.message);
     
-    // Option 2: Fallback - just return the original URL for now
-    console.log('Using original image URL as fallback');
+    // Option 2: Fallback - just return a placeholder URL
+    console.log('Using placeholder URL as fallback');
     return {
       success: true,
-      url: imageUrl // Use original URL as fallback
+      url: `https://picsum.photos/seed/${gameSlug}/300/200` // Use placeholder as fallback
     };
   }
 }
