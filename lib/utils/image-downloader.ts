@@ -58,7 +58,7 @@ export async function downloadImage(imageUrl: string, gameName: string, gameId?:
     }
     
   } catch (error: any) {
-    console.error(`Failed to download image for ${gameSlug}:`, error.message);
+    console.error(`Failed to download image for ${gameName}:`, error.message);
     return {
       success: false,
       error: error.message
