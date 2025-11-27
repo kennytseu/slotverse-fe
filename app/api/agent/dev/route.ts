@@ -59,9 +59,9 @@ export async function POST(req: Request) {
     content: prompt
   });
 
-  // Ask OpenAI (GPT-4.1 or GPT-4.1-mini recommended for agents)
+  // Ask OpenAI (Using GPT-4o-mini for cost efficiency - 60x cheaper than GPT-4o!)
   const response = await client.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
