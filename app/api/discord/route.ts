@@ -251,21 +251,7 @@ async function handleCopyCommand(options: any[], body: any) {
   processScraping(url, body.channel_id, body.token).catch(console.error);
 
   return immediateResponse;
-    ]) as any;
-
-    if (!scrapeResult.success) {
-      return NextResponse.json({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          content: `❌ Scraping failed: ${scrapeResult.error}`,
-          flags: 64
-        }
-      });
-    }
-
-    // Process games and save to database
-    const games = scrapeResult.data?.games || [];
-    const savedGames = [];
+}
 
     for (const game of games) {
       const gameName = game.name;
