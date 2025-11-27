@@ -259,14 +259,17 @@ async function processScraping(url: string, channelId?: string, interactionToken
     // Call the actual scraping function with a timeout
     let scrapeResult;
     try {
+      console.log('[processScraping] About to call handleScrapeUrl...');
       scrapeResult = await Promise.race([
         handleScrapeUrl({ url }),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
         )
       ]) as any;
+      console.log('[processScraping] handleScrapeUrl completed:', scrapeResult?.success);
     } catch (timeoutError: any) {
       console.error('[processScraping] Timeout or other error:', timeoutError);
+      console.error('[processScraping] Error stack:', timeoutError.stack);
       scrapeResult = {
         success: false,
         error: timeoutError.message || 'Unknown timeout error'

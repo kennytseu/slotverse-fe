@@ -209,8 +209,10 @@ export async function handleScrapeUrl({
   extractType?: "game" | "provider" | "games-list" | "auto" 
 }) {
   console.log(`[handleScrapeUrl] Function called with URL: ${url}`);
+  console.log(`[handleScrapeUrl] Parameters:`, { url, targetGame, extractType });
   
   try {
+    console.log(`[handleScrapeUrl] Entering try block...`);
     console.log(`[handleScrapeUrl] Starting scrape process...`);
     
     // Simple fetch without AbortController first to test
