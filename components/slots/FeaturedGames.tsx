@@ -156,7 +156,12 @@ export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
       try {
         const response = await fetch('/api/games');
         if (response.ok) {
-          const dbGames = await response.json();
+          const apiResponse = await response.json();
+          console.log('API Response:', apiResponse);
+          
+          // Extract games array from API response
+          const dbGames = apiResponse.games || [];
+          console.log('Database games:', dbGames);
           
           // Filter out obvious non-games and convert to our format
           const validGames = dbGames
