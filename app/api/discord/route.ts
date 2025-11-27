@@ -246,7 +246,7 @@ async function handleCopyCommand(options: any[], body: any) {
   });
 
   // Process the scraping in the background (don't await)
-  processScraping(url, body.channel_id, body.token).catch(console.error);
+  processScraping(url, body.channel?.id, body.token).catch(console.error);
 
   return immediateResponse;
 }
@@ -528,7 +528,7 @@ async function handleBuildCommand(options: any[], body: any) {
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction, body.channel_id, body.token, 'build').catch(console.error);
+  processAIRequest(instruction, body.channel?.id, body.token, 'build').catch(console.error);
 
   return immediateResponse;
 }
@@ -559,7 +559,7 @@ async function handleEditCommand(options: any[], body: any) {
   });
 
   // Process the AI request in the background (don't await)
-  processAIRequest(instruction, body.channel_id, body.token, 'edit').catch(console.error);
+  processAIRequest(instruction, body.channel?.id, body.token, 'edit').catch(console.error);
 
   return immediateResponse;
 }
