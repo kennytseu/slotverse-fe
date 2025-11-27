@@ -391,7 +391,6 @@ async function processScraping(url: string, channelId?: string, interactionToken
     }
   }
 }
-}
 
 async function handleDbSetupCommand() {
   try {
