@@ -214,10 +214,12 @@ export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
               isFeatured: game.is_featured || false
             }));
 
-          // Combine with fallback games if we have valid games
+          // Use database games if available, otherwise fallback
           if (validGames.length > 0) {
-            setGames([...validGames, ...fallbackGames]);
+            console.log('Using database games:', validGames.length);
+            setGames(validGames);
           } else {
+            console.log('No valid database games, using fallback');
             setGames(fallbackGames);
           }
         } else {
