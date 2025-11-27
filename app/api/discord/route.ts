@@ -529,7 +529,7 @@ async function handleBuildCommand(options: any[]) {
 
   try {
     // Send the instruction to the AI agent
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://slotverse.net';
+    const baseUrl = 'https://slotverse.net'; // Always use main domain
     const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
       method: 'POST',
       headers: {
@@ -597,7 +597,7 @@ async function handleEditCommand(options: any[]) {
   try {
     // Send the edit request to the AI agent
     const instruction = `Edit the file ${filePath}: ${changes}`;
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://slotverse.net';
+    const baseUrl = 'https://slotverse.net'; // Always use main domain
     const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
       method: 'POST',
       headers: {
