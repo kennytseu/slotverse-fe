@@ -493,7 +493,7 @@ function extractGameDetails(html: string, url: string, game: GameData): void {
   }
 }
 
-  // Extract game names
+// Helper function to extract game name from demo URL or page URL
   for (const pattern of gamePatterns.name) {
     let match;
     while ((match = pattern.exec(html)) !== null) {

@@ -76,11 +76,24 @@ async function registerCommands() {
   try {
     console.log('🤖 Registering Discord slash commands...');
 
-    // Register commands globally (takes up to 1 hour to propagate)
-    await rest.put(
-      Routes.applicationCommands(process.env.DISCORD_APPLICATION_ID),
-      { body: commands },
-    );
+    // Get guild ID from environment or use a default test guild
+    const guildId = process.env.DISCORD_GUILD_ID || process.env.ALLOWED_DISCORD_SERVERS?.split(',')[0];
+    
+    if (guildId) {
+      console.log(`📍 Registering commands for guild: ${guildId}`);
+      // Register commands for specific guild (immediate)
+      await rest.put(
+        Routes.applicationGuildCommands(process.env.DISCORD_APPLICATION_ID, guildId),
+        { body: commands },
+      );
+    } else {
+      console.log('🌍 Registering commands globally (takes up to 1 hour)');
+      // Register commands globally (takes up to 1 hour to propagate)
+      await rest.put(
+        Routes.applicationCommands(process.env.DISCORD_APPLICATION_ID),
+        { body: commands },
+      );
+    }
 
     console.log('✅ Successfully registered Discord commands!');
     console.log('📋 Registered commands:');

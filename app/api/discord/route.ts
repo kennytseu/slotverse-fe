@@ -529,7 +529,8 @@ async function handleBuildCommand(options: any[]) {
 
   try {
     // Send the instruction to the AI agent
-    const agentResponse = await fetch(`${process.env.VERCEL_URL || 'https://slotverse.net'}/api/agent/dev`, {
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://slotverse.net';
+    const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -596,7 +597,8 @@ async function handleEditCommand(options: any[]) {
   try {
     // Send the edit request to the AI agent
     const instruction = `Edit the file ${filePath}: ${changes}`;
-    const agentResponse = await fetch(`${process.env.VERCEL_URL || 'https://slotverse.net'}/api/agent/dev`, {
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://slotverse.net';
+    const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
