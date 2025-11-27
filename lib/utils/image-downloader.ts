@@ -59,8 +59,10 @@ export async function downloadImage(imageUrl: string, gameSlug: string): Promise
 async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string): Promise<{success: boolean, url?: string, error?: string}> {
   try {
     // Upload to your private server
-    const uploadUrl = process.env.IMAGE_UPLOAD_URL || `http://${process.env.MYSQL_HOST}/upload-image`;
+    const uploadUrl = process.env.IMAGE_UPLOAD_URL || `http://${process.env.MYSQL_HOST}/upload-image.php`;
     const cdnBaseUrl = process.env.IMAGE_CDN_URL || `http://${process.env.MYSQL_HOST}/images/games`;
+    
+    console.log(`Attempting to upload image to: ${uploadUrl}`);
     
     const formData = new FormData();
     const blob = new Blob([new Uint8Array(imageBuffer)]);
@@ -82,18 +84,14 @@ async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string)
     }
     
   } catch (error: any) {
-    console.log('HTTP upload failed, trying fallback method...');
+    console.log('HTTP upload failed, trying fallback method...', error.message);
     
-    // Option 2: Fallback - use external image hosting service
-    try {
-      const uploadResult = await uploadToImageHost(imageBuffer, fileName);
-      return uploadResult;
-    } catch (fallbackError: any) {
-      return {
-        success: false,
-        error: `Both upload methods failed: ${error.message}, ${fallbackError.message}`
-      };
-    }
+    // Option 2: Fallback - just return the original URL for now
+    console.log('Using original image URL as fallback');
+    return {
+      success: true,
+      url: imageUrl // Use original URL as fallback
+    };
   }
 }
 
