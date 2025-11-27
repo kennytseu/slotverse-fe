@@ -209,48 +209,77 @@ export async function handleScrapeUrl({
   extractType?: "game" | "provider" | "games-list" | "auto" 
 }) {
   try {
-    // Fetch the webpage content with comprehensive headers to bypass Cloudflare
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0'
+    console.log(`[handleScrapeUrl] Starting scrape for: ${url}`);
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    try {
+      // Fetch the webpage content with comprehensive headers to bypass Cloudflare
+      console.log(`[handleScrapeUrl] Fetching URL with headers...`);
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'DNT': '1',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Cache-Control': 'max-age=0'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`[handleScrapeUrl] Response received: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        console.log(`[handleScrapeUrl] Response not OK: ${response.status} ${response.statusText}`);
+        return {
+          success: false,
+          error: `Failed to fetch URL: ${response.status} ${response.statusText}`
+        };
       }
-    });
 
-    if (!response.ok) {
+      console.log(`[handleScrapeUrl] Reading response text...`);
+      const html = await response.text();
+      console.log(`[handleScrapeUrl] HTML received, length: ${html.length} characters`);
+      
+      // Extract structured data using common patterns
+      console.log(`[handleScrapeUrl] Extracting game data...`);
+      const extractedData = extractSlotGameData(html, url, targetGame, extractType);
+      console.log(`[handleScrapeUrl] Extraction complete: ${extractedData.games?.length || 0} games found`);
+      
       return {
-        success: false,
-        error: `Failed to fetch URL: ${response.status} ${response.statusText}`
+        success: true,
+        url,
+        extractType,
+        targetGame,
+        data: extractedData,
+        message: `Successfully extracted ${extractedData.games?.length || 0} games and ${extractedData.providers?.length || 0} providers from ${url}`
       };
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      console.error(`[handleScrapeUrl] Fetch error:`, fetchError);
+      if (fetchError.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'Request timed out after 30 seconds'
+        };
+      }
+      throw fetchError; // Re-throw to be caught by outer catch
     }
-
-    const html = await response.text();
-    
-    // Extract structured data using common patterns
-    const extractedData = extractSlotGameData(html, url, targetGame, extractType);
-    
-    return {
-      success: true,
-      url,
-      extractType,
-      targetGame,
-      data: extractedData,
-      message: `Successfully extracted ${extractedData.games?.length || 0} games and ${extractedData.providers?.length || 0} providers from ${url}`
-    };
   } catch (error: any) {
+    console.error(`[handleScrapeUrl] General error:`, error);
     return {
       success: false,
-      error: error.message
+      error: error.message || 'Unknown scraping error'
     };
   }
 }
