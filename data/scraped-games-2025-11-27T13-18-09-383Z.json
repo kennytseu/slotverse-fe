@@ -1,0 +1,36 @@
+{
+  "sourceUrl": "https://www.netent.com/games/starburst/",
+  "scrapedAt": "2025-11-27T13:18:09.384Z",
+  "games": [
+    {
+      "name": "Starburst",
+      "provider": "the Malta Gaming Authority under license",
+      "rtp": "96.08%",
+      "volatility": "Unknown",
+      "maxWin": "N/A",
+      "features": [
+        "Standard Features"
+      ],
+      "description": "Starburst is a slot game by the Malta Gaming Authority under license.",
+      "image": null,
+      "demoUrl": null,
+      "sourceUrl": "https://www.netent.com/games/starburst/",
+      "addedAt": "2025-11-27T13:18:09.384Z"
+    },
+    {
+      "name": "Starburst™ Slot Play",
+      "provider": "the Malta Gaming Authority under license",
+      "rtp": "96.08%",
+      "volatility": "Unknown",
+      "maxWin": "N/A",
+      "features": [
+        "Standard Features"
+      ],
+      "description": "Starburst™ Slot Play is a slot game by the Malta Gaming Authority under license.",
+      "image": null,
+      "demoUrl": null,
+      "sourceUrl": "https://www.netent.com/games/starburst/",
+      "addedAt": "2025-11-27T13:18:09.384Z"
+    }
+  ]
+}
