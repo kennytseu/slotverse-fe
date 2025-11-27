@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
           let localImagePath = undefined;
           if (game.image) {
             console.log(`Downloading image for ${gameName}: ${game.image}`);
-            const downloadResult = await downloadImage(game.image, gameName, gameId);
+            const downloadResult = await downloadImage(game.image, gameName);
             if (downloadResult.success) {
               localImagePath = downloadResult.localPath;
               console.log(`Image downloaded successfully: ${localImagePath}`);
