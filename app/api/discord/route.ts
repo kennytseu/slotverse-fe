@@ -78,16 +78,19 @@ export async function POST(req: NextRequest) {
     // Parse body first to check if it's a PING
     let body;
     try {
+      console.log('Parsing JSON body...');
       body = JSON.parse(rawBody);
+      console.log('JSON parsed successfully, type:', body.type);
     } catch (e) {
       console.error('Failed to parse JSON:', e);
+      console.error('Raw body that failed to parse:', rawBody.substring(0, 200) + '...');
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
     // Handle Discord PING immediately (before signature verification)
-    if (body.type === InteractionType.PING) {
+    if (body.type === 1) { // InteractionType.PING
       console.log('Responding to Discord PING - skipping signature verification for validation');
-      return NextResponse.json({ type: InteractionResponseType.PONG });
+      return NextResponse.json({ type: 1 }); // InteractionResponseType.PONG
     }
     
     // Only verify signature for non-PING requests
