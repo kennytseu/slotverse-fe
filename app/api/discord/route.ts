@@ -14,7 +14,7 @@ import { writeFile } from "@/lib/agent/git";
 import { verifyKey } from 'discord-interactions';
 
 // Discord webhook verification
-function verifyDiscordRequest(request: NextRequest, body: string) {
+async function verifyDiscordRequest(request: NextRequest, body: string) {
   const signature = request.headers.get('x-signature-ed25519');
   const timestamp = request.headers.get('x-signature-timestamp');
   const publicKey = process.env.DISCORD_PUBLIC_KEY;
@@ -37,7 +37,7 @@ function verifyDiscordRequest(request: NextRequest, body: string) {
   }
   
   try {
-    const isValid = verifyKey(body, signature, timestamp, publicKey);
+    const isValid = await verifyKey(body, signature, timestamp, publicKey);
     return isValid;
   } catch (error) {
     console.error('Discord signature verification error:', error);
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify signature for all requests (Discord requires this for validation)
-    if (!verifyDiscordRequest(req, rawBody)) {
+    if (!(await verifyDiscordRequest(req, rawBody))) {
       console.error('Discord signature verification failed');
       return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
