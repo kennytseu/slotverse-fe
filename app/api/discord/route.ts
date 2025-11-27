@@ -269,12 +269,37 @@ async function processScraping(url: string, channelId?: string, interactionToken
   const logs: string[] = [];
   const startTime = Date.now();
   
+  // Helper function to send debug follow-ups
+  async function sendDebugFollowUp(step: string, message: string) {
+    if (interactionToken) {
+      try {
+        await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🔍 **Debug Step ${step}**: ${message}`,
+            embeds: [{
+              color: 0x00ff00,
+              timestamp: new Date().toISOString(),
+              footer: { text: `SlotVerse Debug • ${new Date().toLocaleTimeString()}` }
+            }]
+          })
+        });
+        console.log(`[DEBUG] Sent follow-up: ${step} - ${message}`);
+      } catch (error) {
+        console.log(`[DEBUG] Failed to send follow-up: ${step} - ${error}`);
+      }
+    }
+  }
+  
   try {
     logs.push(`🚀 Starting scrape: ${url}`);
+    await sendDebugFollowUp("1", "Background processing started");
 
     // Call the actual scraping function with a timeout
     let scrapeResult;
     try {
+      await sendDebugFollowUp("2", "Initiating robust scraper");
       scrapeResult = await Promise.race([
         handleScrapeUrl({ url }),
         new Promise((_, reject) =>
@@ -285,6 +310,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
       const duration = Date.now() - startTime;
       logs.push(`⏰ Timeout: ${timeoutError.message}`);
       console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
+      await sendDebugFollowUp("ERROR", `Scraping timeout after ${duration}ms: ${timeoutError.message}`);
       scrapeResult = {
         success: false,
         error: timeoutError.message || 'Unknown timeout error'
@@ -295,6 +321,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
       logs.push(`❌ Scraping failed: ${scrapeResult.error}`);
       const duration = Date.now() - startTime;
       console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
+      await sendDebugFollowUp("ERROR", `Scraping failed: ${scrapeResult.error}`);
       
       // Send failure notification to Discord
       if (channelId && interactionToken) {
@@ -316,9 +343,12 @@ async function processScraping(url: string, channelId?: string, interactionToken
       return;
     }
 
+    await sendDebugFollowUp("3", `Scraping successful! Found ${scrapeResult.data?.games?.length || 0} games`);
+
     // Process games and save to database
     const games = scrapeResult.data?.games || [];
     logs.push(`📊 Processing ${games.length} games`);
+    await sendDebugFollowUp("4", `Processing ${games.length} games for database`);
     const savedGames = [];
 
     // TEMPORARY: Skip game processing during test
@@ -361,6 +391,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
     logs.push(`✅ Completed: ${savedGames.length} games saved`);
     const duration = Date.now() - startTime;
     console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
+    await sendDebugFollowUp("5", `Database processing complete: ${savedGames.length} games saved`);
     // Send appropriate notification to Discord based on results
     if (channelId && interactionToken) {
       try {
@@ -713,10 +744,11 @@ async function processAIRequest(instruction: string, channelId?: string, interac
 // Function to send follow-up messages to Discord
 async function sendDiscordFollowUp(interactionToken: string, message: any): Promise<void> {
   try {
-    const discordApiUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}/messages/@original`;
+    // Use POST to send new follow-up message instead of PATCH to edit original
+    const discordApiUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`;
     
     const response = await fetch(discordApiUrl, {
-      method: 'PATCH',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
