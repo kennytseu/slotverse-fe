@@ -128,18 +128,6 @@ export async function searchGames(query: string, limit: number = 20): Promise<Ga
   return rows as Game[];
 }
 
-export async function getGameBySlug(slug: string): Promise<Game | null> {
-  const connection = getPool();
-  
-  const [rows] = await connection.execute(
-    'SELECT * FROM games WHERE slug = ? LIMIT 1',
-    [slug]
-  );
-  
-  const games = rows as Game[];
-  return games.length > 0 ? games[0] : null;
-}
-
 export async function updateGame(id: number, updates: Partial<Game>): Promise<boolean> {
   const connection = getPool();
   
