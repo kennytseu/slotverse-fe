@@ -11,14 +11,31 @@ import {
 import { handleScrapeUrl } from "@/lib/agent/tool-functions";
 import { writeFile } from "@/lib/agent/git";
 
+import { verifyKey } from 'discord-interactions';
+
 // Discord webhook verification
-function verifyDiscordRequest(request: NextRequest) {
+function verifyDiscordRequest(request: NextRequest, body: string) {
   const signature = request.headers.get('x-signature-ed25519');
   const timestamp = request.headers.get('x-signature-timestamp');
+  const publicKey = process.env.DISCORD_PUBLIC_KEY;
   
-  // For now, we'll skip verification in development
-  // In production, you should implement proper Discord signature verification
-  return true;
+  // Skip verification in development if no public key is set
+  if (!publicKey && process.env.NODE_ENV === 'development') {
+    console.log('⚠️ Skipping Discord signature verification in development');
+    return true;
+  }
+  
+  if (!signature || !timestamp || !publicKey) {
+    console.error('Missing Discord verification headers or public key');
+    return false;
+  }
+  
+  try {
+    return verifyKey(body, signature, timestamp, publicKey);
+  } catch (error) {
+    console.error('Discord signature verification failed:', error);
+    return false;
+  }
 }
 
 // Discord interaction types
@@ -43,11 +60,14 @@ const InteractionResponseType = {
 
 export async function POST(req: NextRequest) {
   try {
-    if (!verifyDiscordRequest(req)) {
+    // Get raw body for signature verification
+    const rawBody = await req.text();
+    
+    if (!verifyDiscordRequest(req, rawBody)) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = JSON.parse(rawBody);
     const { type, data, member, user } = body;
 
     // Handle Discord ping

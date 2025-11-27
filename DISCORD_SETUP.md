@@ -9,10 +9,11 @@ This guide will help you set up the SlotVerse Discord bot so you and your team c
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
 2. Click "New Application"
 3. Name it "SlotVerse Bot"
-4. Go to "Bot" section
-5. Click "Add Bot"
-6. Copy the **Bot Token** (keep it secret!)
-7. Copy the **Application ID** from "General Information"
+4. Copy the **Application ID** from "General Information"
+5. Copy the **Public Key** from "General Information" 
+6. Go to "Bot" section
+7. Click "Add Bot"
+8. Copy the **Bot Token** (keep it secret!)
 
 ### Step 2: Add Environment Variables
 
@@ -21,6 +22,7 @@ Add these to your `.env.local` file:
 ```env
 DISCORD_BOT_TOKEN=your_bot_token_here
 DISCORD_APPLICATION_ID=your_application_id_here
+DISCORD_PUBLIC_KEY=your_public_key_here
 
 # Option A: Server-based authorization (recommended for teams)
 ALLOWED_DISCORD_SERVERS=server_id_1,server_id_2
@@ -129,6 +131,7 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_APPLICATION_ID&permissio
    ```bash
    vercel env add DISCORD_BOT_TOKEN
    vercel env add DISCORD_APPLICATION_ID
+   vercel env add DISCORD_PUBLIC_KEY
    
    # Choose one authorization method:
    vercel env add ALLOWED_DISCORD_SERVERS  # Server-based (recommended)
