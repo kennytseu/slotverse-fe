@@ -599,18 +599,20 @@ async function processAIRequest(instruction: string, channelId?: string, interac
       try {
         const errorData = await agentResponse.json();
         if (errorData.error) {
-          if (errorData.error.includes('quota') || errorData.error.includes('429')) {
+          if (errorData.type === 'quota_exceeded' || errorData.error.includes('quota') || errorData.error.includes('429')) {
             errorMessage = "🚫 **OpenAI API Quota Exceeded**\n\nYour OpenAI account has run out of credits or hit the usage limit.";
-            troubleshooting = "• Add credits to your OpenAI account at platform.openai.com/account/billing\n• Upgrade your OpenAI plan\n• Wait for quota reset if on free tier\n• Contact your admin to resolve billing issues";
-          } else if (errorData.error.includes('401')) {
+            troubleshooting = "• Add credits to your OpenAI account at [platform.openai.com/account/billing](https://platform.openai.com/account/billing)\n• Upgrade your OpenAI plan\n• Wait for quota reset if on free tier\n• Contact your admin to resolve billing issues";
+          } else if (errorData.type === 'auth_failed' || errorData.error.includes('401') || errorData.error.includes('authentication')) {
             errorMessage = "🔑 **OpenAI API Authentication Failed**\n\nThe API key is invalid or expired.";
             troubleshooting = "• Check OPENAI_API_KEY environment variable\n• Verify the API key is correct\n• Regenerate API key if needed";
           } else {
-            errorMessage = `🐛 **AI Agent Error**\n\n${errorData.error}`;
+            errorMessage = `🐛 **AI Agent Error**\n\n${errorData.error.substring(0, 200)}${errorData.error.length > 200 ? '...' : ''}`;
+            troubleshooting = "• Check the error details above\n• Try a simpler request\n• Contact support if the issue persists";
           }
         }
       } catch (e) {
         // If we can't parse the error, use the status code
+        console.error('Failed to parse agent error response:', e);
       }
       
       // Send failure notification to Discord

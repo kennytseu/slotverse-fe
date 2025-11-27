@@ -60,8 +60,10 @@ export async function POST(req: Request) {
   });
 
   // Ask OpenAI (Using GPT-4o-mini for cost efficiency - 60x cheaper than GPT-4o!)
-  const response = await client.chat.completions.create({
-    model: "gpt-4o-mini",
+  let response;
+  try {
+    response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
@@ -105,7 +107,40 @@ Current session: ${sessionId}`,
     ],
     tools: toolDefs,
     tool_choice: "auto",
-  });
+    });
+  } catch (error: any) {
+    // Handle OpenAI API errors (quota, auth, etc.)
+    console.error('OpenAI API error:', error);
+    
+    if (error.status === 429) {
+      return NextResponse.json(
+        { 
+          error: "OpenAI API quota exceeded. Please add credits to your OpenAI account at platform.openai.com/account/billing or upgrade your plan.",
+          type: "quota_exceeded",
+          status: 429
+        },
+        { status: 500 }
+      );
+    } else if (error.status === 401) {
+      return NextResponse.json(
+        { 
+          error: "OpenAI API authentication failed. Please check your API key.",
+          type: "auth_failed", 
+          status: 401
+        },
+        { status: 500 }
+      );
+    } else {
+      return NextResponse.json(
+        { 
+          error: `OpenAI API error: ${error.message || 'Unknown error'}`,
+          type: "api_error",
+          status: error.status || 500
+        },
+        { status: 500 }
+      );
+    }
+  }
 
   const message = response.choices[0].message;
 
