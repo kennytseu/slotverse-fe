@@ -111,8 +111,8 @@ async function sendDiscordNotification(job, result) {
     
     let message;
     if (result.success) {
-      const gamesCount = result.games?.length || 0;
-      const gamesText = result.games?.map(g => `• ${g.name} (${g.provider})`).join('\n') || 'No games found';
+      const gamesCount = (result.games && result.games.length) || 0;
+      const gamesText = (result.games && result.games.map(g => `• ${g.name} (${g.provider})`).join('\n')) || 'No games found';
       
       message = {
         content: `✅ **Scraping Job #${job.id} Complete!**\n\n🔗 **Source:** ${job.url}\n🎰 **Games Found:** ${gamesCount}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored\n🗄️ **Database:** Updated automatically`,

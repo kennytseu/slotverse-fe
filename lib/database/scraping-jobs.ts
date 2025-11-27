@@ -6,7 +6,7 @@ const dbConfig = {
   port: parseInt(process.env.MYSQL_PORT || '3306'),
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'slotverse',
+  database: process.env.MYSQL_DATABASE || 'slotverse_db',
   ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   connectionLimit: 10,
   acquireTimeout: 60000,
