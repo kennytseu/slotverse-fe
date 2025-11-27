@@ -245,6 +245,12 @@ async function handleCopyCommand(options: any[], body: any) {
     }
   });
 
+  // Debug: Log what's actually in the Discord body
+  console.log('[DEBUG] Discord body keys:', Object.keys(body));
+  console.log('[DEBUG] body.channel_id:', body.channel_id);
+  console.log('[DEBUG] body.channel:', body.channel ? Object.keys(body.channel) : 'undefined');
+  console.log('[DEBUG] body.token:', body.token ? 'SET' : 'UNDEFINED');
+  
   // Process the scraping in the background (don't await)
   processScraping(url, body.channel_id, body.token).catch(console.error);
 
