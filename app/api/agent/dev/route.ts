@@ -59,11 +59,11 @@ export async function POST(req: Request) {
     content: prompt
   });
 
-  // Ask OpenAI (Using GPT-4o-mini for cost efficiency - 60x cheaper than GPT-4o!)
+  // Ask OpenAI (Using GPT-5 nano for maximum cost efficiency - 3x cheaper than GPT-4o-mini!)
   let response;
   try {
     response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-nano",
     messages: [
       {
         role: "system",
