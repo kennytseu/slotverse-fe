@@ -18,11 +18,13 @@ export async function POST(req: NextRequest) {
     
     // Handle Discord PING
     if (body.type === 1) {
-      console.log('Sending PONG response');
-      return new Response(JSON.stringify({ type: 1 }), {
+      console.log('About to send PONG response');
+      const response = new Response('{"type":1}', {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
+      console.log('PONG response created, returning...');
+      return response;
     }
     
     console.log('Non-PING request received, type:', body.type);
