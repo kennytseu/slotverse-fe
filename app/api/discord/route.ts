@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
           return await handleStatusCommand();
         
         case 'copy':
-          return await handleCopyCommand(options);
+          return await handleCopyCommand(options, body);
         
         case 'dbsetup':
           return await handleDbSetupCommand();
@@ -225,7 +225,7 @@ async function handleStatusCommand() {
   }
 }
 
-async function handleCopyCommand(options: any[]) {
+async function handleCopyCommand(options: any[], body: any) {
   const urlOption = options?.find(opt => opt.name === 'url');
   const url = urlOption?.value;
 
@@ -239,13 +239,18 @@ async function handleCopyCommand(options: any[]) {
     });
   }
 
-  try {
-    // Process scraping immediately with timeout protection
-    const scrapeResult = await Promise.race([
-      handleScrapeUrl({ url }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 2500) // 2.5s timeout
-      )
+  // Send immediate response to Discord (must be within 3 seconds)
+  const immediateResponse = NextResponse.json({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content: `🔗 **Content Scraping Started**\n\n📝 **URL:** ${url}\n\n⏳ Extracting game information and downloading images... This may take a moment.\n\n🔔 Your team will be notified when complete!`
+    }
+  });
+
+  // Process the scraping in the background (don't await)
+  processScraping(url, body.channel_id, body.token).catch(console.error);
+
+  return immediateResponse;
     ]) as any;
 
     if (!scrapeResult.success) {
@@ -348,7 +353,7 @@ async function handleCopyCommand(options: any[]) {
   }
 }
 
-async function processScraping(url: string) {
+async function processScraping(url: string, channelId?: string, interactionToken?: string) {
   try {
     // This would need to be implemented as a follow-up webhook
     // For now, we'll just log the process
@@ -358,6 +363,18 @@ async function processScraping(url: string) {
     
     if (!scrapeResult.success) {
       console.error('Scraping failed:', scrapeResult.error);
+      
+      // Send failure notification to Discord
+      if (channelId && interactionToken) {
+        await sendDiscordFollowUp(channelId, {
+          content: `❌ **Content Scraping Failed**\n\n🔗 **URL:** ${url}\n\n**Error:** ${scrapeResult.error}\n\n💡 **Troubleshooting:**\n• Check if the URL is accessible\n• Verify the site structure hasn't changed\n• Try a different game URL`,
+          embeds: [{
+            color: 0xff0000,
+            timestamp: new Date().toISOString(),
+            footer: { text: "SlotVerse Content Scraper" }
+          }]
+        });
+      }
       return;
     }
 
@@ -400,8 +417,36 @@ async function processScraping(url: string) {
     }
 
     console.log(`Scraping completed: ${savedGames.length} games saved`);
+    // Send success notification to Discord
+    if (channelId && interactionToken) {
+      const gamesText = savedGames.length > 0 
+        ? savedGames.map(g => `• ${g.name} (${g.provider})`).join('\n')
+        : 'No new games found (may already exist in database)';
+        
+      await sendDiscordFollowUp(channelId, {
+        content: `✅ **Content Scraping Complete!**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Processed:** ${games.length}\n**New Games Added:** ${savedGames.length}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored locally\n🗄️ **Database:** Updated automatically\n🚀 **Website:** Changes deployed!`,
+        embeds: [{
+          color: 0x00ff00,
+          timestamp: new Date().toISOString(),
+          footer: { text: "SlotVerse Content Scraper • Images downloaded successfully!" }
+        }]
+      });
+    }
+
   } catch (error) {
     console.error('Scraping process error:', error);
+    
+    // Send error notification to Discord
+    if (channelId && interactionToken) {
+      await sendDiscordFollowUp(channelId, {
+        content: `❌ **Scraping Process Error**\n\n🔗 **URL:** ${url}\n\n**Error:** ${error instanceof Error ? error.message : String(error)}\n\nPlease try again or contact support if the issue persists.`,
+        embeds: [{
+          color: 0xff0000,
+          timestamp: new Date().toISOString(),
+          footer: { text: "SlotVerse Content Scraper" }
+        }]
+      });
+    }
   }
 }
 
