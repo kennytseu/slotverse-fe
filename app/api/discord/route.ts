@@ -269,19 +269,19 @@ async function processScraping(url: string, channelId?: string, interactionToken
   const logs: string[] = [];
   const startTime = Date.now();
   
-  // Helper function to send debug follow-ups
+  // Helper function to send debug follow-ups (reduced for performance)
   async function sendDebugFollowUp(step: string, message: string) {
-    if (interactionToken) {
+    if (interactionToken && (step === "1" || step === "3" || step === "5" || step === "ERROR")) {
       try {
         await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            content: `🔍 **Debug Step ${step}**: ${message}`,
+            content: `🔍 **Step ${step}**: ${message}`,
             embeds: [{
-              color: 0x00ff00,
+              color: step === "ERROR" ? 0xff0000 : 0x00ff00,
               timestamp: new Date().toISOString(),
-              footer: { text: `SlotVerse Debug • ${new Date().toLocaleTimeString()}` }
+              footer: { text: `SlotVerse • ${new Date().toLocaleTimeString()}` }
             }]
           })
         });
@@ -303,7 +303,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
       scrapeResult = await Promise.race([
         handleScrapeUrl({ url }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Scraping timeout after 60 seconds')), 60 * 1000)
+          setTimeout(() => reject(new Error('Scraping timeout after 30 seconds')), 30 * 1000)
         )
       ]) as any;
     } catch (timeoutError: any) {
