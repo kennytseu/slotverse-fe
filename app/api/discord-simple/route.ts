@@ -21,13 +21,21 @@ export async function POST(req: NextRequest) {
       console.log('About to send PONG response with NextResponse');
       try {
         const response = NextResponse.json({ type: 1 });
-        console.log('NextResponse PONG created successfully');
+        console.log('NextResponse PONG created successfully, returning now...');
         return response;
       } catch (error) {
         console.error('NextResponse failed, trying native Response:', error);
-        return new Response('{"type":1}', {
-          headers: { 'Content-Type': 'application/json' }
-        });
+        try {
+          const fallbackResponse = new Response('{"type":1}', {
+            headers: { 'Content-Type': 'application/json' }
+          });
+          console.log('Fallback Response created, returning...');
+          return fallbackResponse;
+        } catch (fallbackError) {
+          console.error('Both NextResponse and Response failed:', fallbackError);
+          // Last resort - return the most basic response possible
+          return new Response('{"type":1}');
+        }
       }
     }
     
