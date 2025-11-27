@@ -63,7 +63,7 @@ async function uploadImageToPrivateServer(imageBuffer: Buffer, fileName: string)
     const cdnBaseUrl = process.env.IMAGE_CDN_URL || `http://${process.env.MYSQL_HOST}/images/games`;
     
     const formData = new FormData();
-    const blob = new Blob([imageBuffer]);
+    const blob = new Blob([new Uint8Array(imageBuffer)]);
     formData.append('image', blob, fileName);
     
     const response = await fetch(uploadUrl, {
