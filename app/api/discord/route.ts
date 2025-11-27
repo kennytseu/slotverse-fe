@@ -38,7 +38,6 @@ function verifyDiscordRequest(request: NextRequest, body: string) {
   
   try {
     const isValid = verifyKey(body, signature, timestamp, publicKey);
-    console.log('Signature verification result:', isValid);
     return isValid;
   } catch (error) {
     console.error('Discord signature verification error:', error);
@@ -87,18 +86,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    // Handle Discord PING immediately (before signature verification)
-    if (body.type === 1) { // InteractionType.PING
-      return new Response(JSON.stringify({ type: 1 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Only verify signature for non-PING requests
+    // Verify signature for all requests (Discord requires this for validation)
     if (!verifyDiscordRequest(req, rawBody)) {
       console.error('Discord signature verification failed');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      return Response.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+
+    // Handle Discord PING after signature verification
+    if (body.type === 1) { // InteractionType.PING
+      return Response.json({ type: 1 });
     }
     const { type, data, member, user } = body;
 
