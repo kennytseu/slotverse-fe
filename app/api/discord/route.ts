@@ -271,7 +271,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
   
   // Helper function to send debug follow-ups (reduced for performance)
   async function sendDebugFollowUp(step: string, message: string) {
-    if (interactionToken && (step === "1" || step === "3" || step === "5" || step === "ERROR")) {
+    if (interactionToken && (step === "1" || step === "2" || step === "3" || step === "5" || step === "ERROR")) {
       try {
         await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`, {
           method: 'POST',
