@@ -91,4 +91,14 @@ if (!process.env.DISCORD_APPLICATION_ID) {
   process.exit(1);
 }
 
+// Check authorization setup
+const hasServerAuth = process.env.ALLOWED_DISCORD_SERVERS;
+const hasUserAuth = process.env.ALLOWED_DISCORD_USERS;
+
+if (!hasServerAuth && !hasUserAuth) {
+  console.warn('⚠️  No authorization configured');
+  console.log('💡 Add ALLOWED_DISCORD_SERVERS (recommended) or ALLOWED_DISCORD_USERS');
+  console.log('   Without this, anyone can use your bot commands!');
+}
+
 registerCommands();

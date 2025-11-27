@@ -21,12 +21,27 @@ Add these to your `.env.local` file:
 ```env
 DISCORD_BOT_TOKEN=your_bot_token_here
 DISCORD_APPLICATION_ID=your_application_id_here
+
+# Option A: Server-based authorization (recommended for teams)
+ALLOWED_DISCORD_SERVERS=server_id_1,server_id_2
+
+# Option B: User-based authorization (fallback)
 ALLOWED_DISCORD_USERS=user_id_1,user_id_2,user_id_3
 ```
 
-**To get your Discord User ID:**
-1. Enable Developer Mode in Discord (User Settings > Advanced > Developer Mode)
-2. Right-click your username and select "Copy User ID"
+**Authorization Options:**
+
+**🏢 Server-Based (Recommended for Teams):**
+- Anyone in the authorized Discord server can use commands
+- Easier team management - just invite people to your server
+- To get Server ID: Enable Developer Mode → Right-click server name → "Copy Server ID"
+
+**👤 User-Based (Individual Control):**
+- Only specific users can use commands (regardless of server)
+- More granular control but harder to manage
+- To get User ID: Enable Developer Mode → Right-click username → "Copy User ID"
+
+**Priority:** Server-based auth takes priority. If `ALLOWED_DISCORD_SERVERS` is set, user-based auth is ignored.
 
 ### Step 3: Register Bot Commands
 
@@ -114,7 +129,11 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_APPLICATION_ID&permissio
    ```bash
    vercel env add DISCORD_BOT_TOKEN
    vercel env add DISCORD_APPLICATION_ID
-   vercel env add ALLOWED_DISCORD_USERS
+   
+   # Choose one authorization method:
+   vercel env add ALLOWED_DISCORD_SERVERS  # Server-based (recommended)
+   # OR
+   vercel env add ALLOWED_DISCORD_USERS    # User-based
    ```
 
 2. **Deploy to production:**
@@ -138,6 +157,12 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_APPLICATION_ID&permissio
 
 ### Adding Team Members
 
+**🏢 Server-Based (Recommended):**
+1. **Invite team members** to your Discord server
+2. **They automatically get access** to SlotVerse commands
+3. **No redeployment needed** - instant access!
+
+**👤 User-Based (Alternative):**
 1. **Get their Discord User ID** (Developer Mode > Right-click > Copy User ID)
 2. **Add to environment variable:**
    ```env
@@ -170,9 +195,17 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_APPLICATION_ID&permissio
 - Check MySQL environment variables
 
 ### Permission Denied
+**Server-based auth:**
+- Add your Discord Server ID to `ALLOWED_DISCORD_SERVERS`
+- Ensure bot is in the authorized server
+- Check server ID format (numbers only, no spaces)
+
+**User-based auth:**
 - Add your Discord User ID to `ALLOWED_DISCORD_USERS`
-- Redeploy the application
 - Check user ID format (numbers only, no spaces)
+
+**Both methods:**
+- Redeploy the application after changes
 
 ## 📞 Support
 

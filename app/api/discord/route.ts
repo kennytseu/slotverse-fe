@@ -61,9 +61,25 @@ export async function POST(req: NextRequest) {
       const userId = user?.id || member?.user?.id;
       const username = user?.username || member?.user?.username;
 
-      // Check if user is authorized (you can customize this)
+      // Check authorization - support both server and user-based auth
+      const allowedServers = process.env.ALLOWED_DISCORD_SERVERS?.split(',') || [];
       const allowedUsers = process.env.ALLOWED_DISCORD_USERS?.split(',') || [];
-      if (allowedUsers.length > 0 && !allowedUsers.includes(userId)) {
+      const guildId = body.guild_id;
+      
+      // If server-based auth is configured, check if command is from allowed server
+      if (allowedServers.length > 0) {
+        if (!guildId || !allowedServers.includes(guildId)) {
+          return NextResponse.json({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: "❌ This server is not authorized to use SlotVerse bot commands.",
+              flags: 64 // Ephemeral message
+            }
+          });
+        }
+      }
+      // Fallback to user-based auth if no server auth configured
+      else if (allowedUsers.length > 0 && !allowedUsers.includes(userId)) {
         return NextResponse.json({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
