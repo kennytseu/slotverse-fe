@@ -294,7 +294,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
     const games = scrapeResult.data?.games || [];
     const savedGames = [];
 
-    for (const game of games) {
+    // TEMPORARY: Skip game processing during test
+    if (scrapeResult.success) {
+      for (const game of games) {
       const gameName = game.name;
       const providerName = game.provider || "Unknown";
       const gameSlug = createSlug(gameName);
@@ -327,6 +329,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
         console.error('Database error for game:', gameName, error);
       }
     }
+    } // End of success check
 
     console.log(`Scraping completed: ${savedGames.length} games saved`);
     // Send success notification to Discord
