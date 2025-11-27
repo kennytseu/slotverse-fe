@@ -154,10 +154,10 @@ export async function POST(req: NextRequest) {
           return await handleHelpCommand();
         
         case 'build':
-          return await handleBuildCommand(options);
+          return await handleBuildCommand(options, body);
         
         case 'edit':
-          return await handleEditCommand(options);
+          return await handleEditCommand(options, body);
         
         default:
           return NextResponse.json({
@@ -513,7 +513,7 @@ async function handleHelpCommand() {
   });
 }
 
-async function handleBuildCommand(options: any[]) {
+async function handleBuildCommand(options: any[], body: any) {
   const instructionOption = options?.find(opt => opt.name === 'instruction');
   const instruction = instructionOption?.value;
 
@@ -541,7 +541,7 @@ async function handleBuildCommand(options: any[]) {
   return immediateResponse;
 }
 
-async function handleEditCommand(options: any[]) {
+async function handleEditCommand(options: any[], body: any) {
   const fileOption = options?.find(opt => opt.name === 'file');
   const changesOption = options?.find(opt => opt.name === 'changes');
   const filePath = fileOption?.value;
