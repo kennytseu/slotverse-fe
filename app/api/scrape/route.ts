@@ -10,6 +10,7 @@ import {
   updateProviderGameCount,
   testConnection 
 } from "@/lib/database/mysql";
+import { downloadImage } from "@/lib/utils/image-downloader";
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,22 +78,36 @@ export async function POST(req: NextRequest) {
 
           // Check if game exists
           const existingGame = await getGameBySlug(gameSlug);
-          if (!existingGame) {
-            const gameId = await createGame({
-              name: gameName,
-              slug: gameSlug,
-              provider: providerName,
-              rtp: game.rtp || undefined,
-              volatility: game.volatility || undefined,
-              max_win: game.maxWin || undefined,
-              features: JSON.stringify(extractFeatures(gameName)),
-              description: `${gameName} is a slot game${providerName !== "Unknown" ? ` by ${providerName}` : ''}.`,
-              image_url: game.image || undefined,
-              demo_url: game.demoUrl || undefined,
-              source_url: url,
-              is_featured: true,
-              is_new: true
-            });
+        if (!existingGame) {
+          // Download image if available
+          let localImagePath = undefined;
+          if (game.image) {
+            console.log(`Downloading image for ${gameName}: ${game.image}`);
+            const downloadResult = await downloadImage(game.image, gameSlug);
+            if (downloadResult.success) {
+              localImagePath = downloadResult.localPath;
+              console.log(`Image downloaded successfully: ${localImagePath}`);
+            } else {
+              console.warn(`Failed to download image for ${gameName}: ${downloadResult.error}`);
+              localImagePath = game.image; // Fallback to original URL
+            }
+          }
+
+          const gameId = await createGame({
+            name: gameName,
+            slug: gameSlug,
+            provider: providerName,
+            rtp: game.rtp || undefined,
+            volatility: game.volatility || undefined,
+            max_win: game.maxWin || undefined,
+            features: JSON.stringify(extractFeatures(gameName)),
+            description: `${gameName} is a slot game${providerName !== "Unknown" ? ` by ${providerName}` : ''}.`,
+            image_url: localImagePath,
+            demo_url: game.demoUrl || undefined,
+            source_url: url,
+            is_featured: true,
+            is_new: true
+          });
 
             // Update provider game count
             if (providerName !== "Unknown") {

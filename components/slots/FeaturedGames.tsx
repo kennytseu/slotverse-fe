@@ -210,7 +210,9 @@ export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
               id: game.id,
               name: game.name,
               provider: game.provider === 'Unknown' ? 'Various Providers' : game.provider,
-              image: `https://picsum.photos/300/200?random=${game.id}`,
+              image: game.image_url && game.image_url.startsWith('/images/') 
+                ? game.image_url 
+                : game.image_url || `https://picsum.photos/300/200?random=${game.id}`,
               rtp: game.rtp ? `${game.rtp}%` : "96.00%",
               volatility: game.volatility || "Medium",
               maxWin: game.max_win || "1,000x",
