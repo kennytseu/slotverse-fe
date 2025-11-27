@@ -81,15 +81,15 @@ export async function POST(req: NextRequest) {
         if (!existingGame) {
           // Download image if available
           let localImagePath = undefined;
-          if (game.image) {
-            console.log(`Downloading image for ${gameName}: ${game.image}`);
-            const downloadResult = await downloadImage(game.image, gameName);
+          if (game.imageUrl) {
+            console.log(`Downloading image for ${gameName}: ${game.imageUrl}`);
+            const downloadResult = await downloadImage(game.imageUrl, gameName);
             if (downloadResult.success) {
               localImagePath = downloadResult.localPath;
               console.log(`Image downloaded successfully: ${localImagePath}`);
             } else {
               console.warn(`Failed to download image for ${gameName}: ${downloadResult.error}`);
-              localImagePath = game.image; // Fallback to original URL
+              localImagePath = game.imageUrl; // Fallback to original URL
             }
           }
 

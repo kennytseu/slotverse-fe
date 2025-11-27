@@ -266,7 +266,7 @@ interface GameData {
   volatility?: string;
   maxWin?: string;
   description?: string;
-  image?: string;
+  imageUrl?: string;
   demoUrl?: string;
   source: string;
 }
