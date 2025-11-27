@@ -209,7 +209,19 @@ export async function handleScrapeUrl({
   extractType?: "game" | "provider" | "games-list" | "auto" 
 }) {
   console.log(`[handleScrapeUrl] Function called with URL: ${url}`);
-  console.log(`[handleScrapeUrl] Parameters:`, { url, targetGame, extractType });
+  console.log(`[handleScrapeUrl] About to log parameters...`);
+  
+  // Test if the issue is with parameter logging
+  try {
+    console.log(`[handleScrapeUrl] Parameters:`, { url, targetGame, extractType });
+    console.log(`[handleScrapeUrl] Parameters logged successfully`);
+  } catch (paramError) {
+    console.error(`[handleScrapeUrl] Error logging parameters:`, paramError);
+    return {
+      success: false,
+      error: 'Parameter logging error: ' + String(paramError)
+    };
+  }
   
   try {
     console.log(`[handleScrapeUrl] Entering try block...`);
