@@ -296,7 +296,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
 
     // TEMPORARY: Skip game processing during test
     if (scrapeResult.success) {
-      for (const game of games) {
+      for (const game of games as any[]) {
       const gameName = game.name;
       const providerName = game.provider || "Unknown";
       const gameSlug = createSlug(gameName);
