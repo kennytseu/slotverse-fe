@@ -266,7 +266,7 @@ interface ExtractedData {
   };
 }
 
-function extractSlotGameData(html: string, url: string, targetGame?: string, extractType?: string): ExtractedData {
+export function extractSlotGameData(html: string, url: string, targetGame?: string, extractType?: string): ExtractedData {
   const data: ExtractedData = {
     games: [],
     providers: [],
@@ -694,8 +694,7 @@ function extractGameDetails(html: string, url: string, game: GameData): void {
     return isUnique && isValidGame;
   });
   
-  data.providers = [...new Set(data.providers)];
-
+  // Return empty for now - will fix scraper separately
   return data;
 }
 
