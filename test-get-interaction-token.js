@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+
+/**
+ * Test Discord command locally and extract interaction token for follow-up testing
+ */
+
+async function testGetInteractionToken() {
+  const testUrl = process.argv[2] || 'https://www.pragmaticplay.com/games/gates-of-olympus/';
+  
+  console.log('🤖 Testing Discord Command to Get Interaction Token');
+  console.log('==================================================');
+  console.log(`URL: ${testUrl}`);
+  console.log('Calling: http://localhost:3000/api/discord');
+  console.log('');
+
+  // Mock Discord interaction payload
+  const discordPayload = {
+    type: 2, // APPLICATION_COMMAND
+    data: {
+      name: 'copy',
+      options: [
+        {
+          name: 'url',
+          value: testUrl
+        }
+      ]
+    },
+    guild_id: '867611617721450546', // Use the actual allowed server ID
+    channel_id: '1234567890123456789',
+    token: 'test_interaction_token_' + Date.now(), // Generate unique token
+    user: {
+      id: '987654321098765432',
+      username: 'testuser'
+    }
+  };
+
+  try {
+    const startTime = Date.now();
+    
+    const response = await fetch('http://localhost:3000/api/discord', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Signature-Ed25519': 'mock_signature',
+        'X-Signature-Timestamp': Math.floor(Date.now() / 1000).toString()
+      },
+      body: JSON.stringify(discordPayload)
+    });
+
+    const duration = Date.now() - startTime;
+    console.log(`⏱️  API Response time: ${duration}ms`);
+    console.log(`📡 Status: ${response.status} ${response.statusText}`);
+    console.log('');
+
+    const result = await response.json();
+    
+    if (response.ok) {
+      console.log('✅ Discord command processed successfully!');
+      console.log('');
+      console.log('📋 Response:');
+      console.log(JSON.stringify(result, null, 2));
+      console.log('');
+      console.log('🔑 Interaction Token for follow-up testing:');
+      console.log(discordPayload.token);
+      console.log('');
+      console.log('💡 To test follow-up message, run:');
+      console.log(`node test-discord-followup.js ${discordPayload.token}`);
+      console.log('');
+      console.log('⏰ Note: In real Discord, interaction tokens expire after 15 minutes');
+    } else {
+      console.log('❌ FAILED');
+      console.log(JSON.stringify(result, null, 2));
+    }
+
+  } catch (error) {
+    console.error('💥 CRASH:', error.message);
+    process.exit(1);
+  }
+}
+
+testGetInteractionToken();

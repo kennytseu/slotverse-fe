@@ -404,18 +404,31 @@ export class RobustScraper {
       }
     }
 
-    // Extract image URL
+    // Extract image URL - prioritize actual game images over logos
     const imagePatterns = [
-      /<img[^>]*src="([^"]*(?:game|slot|logo)[^"]*)"[^>]*>/i,
-      /<img[^>]*alt="[^"]*(?:game|slot)[^"]*"[^>]*src="([^"]+)"/i,
+      // High priority: images with game name in alt text
+      new RegExp(`<img[^>]*alt="[^"]*${game.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^"]*"[^>]*src="([^"]+)"`, 'i'),
+      // Medium priority: images with game/slot in alt but not logo
+      /<img[^>]*alt="[^"]*(?:game|slot)(?!.*logo)[^"]*"[^>]*src="([^"]+)"/i,
+      // Medium priority: images in assets/games directories
+      /<img[^>]*src="([^"]*(?:assets|games|slots)[^"]*\.(?:jpg|jpeg|png|webp))"[^>]*>/i,
+      // Lower priority: any img with game/slot in src (but not logo)
+      /<img[^>]*src="([^"]*(?:game|slot)(?!.*logo)[^"]*\.(?:jpg|jpeg|png|webp))"[^>]*>/i,
+      // Fallback: structured data
       /"image"\s*:\s*"([^"]+)"/i
     ];
     
     for (const pattern of imagePatterns) {
       const match = pattern.exec(html);
       if (match && match[1]) {
-        game.imageUrl = this.resolveUrl(match[1], url);
-        break;
+        const imageUrl = match[1];
+        // Skip obvious logos and icons
+        if (!imageUrl.toLowerCase().includes('logo') && 
+            !imageUrl.toLowerCase().includes('icon') &&
+            !imageUrl.toLowerCase().includes('favicon')) {
+          game.imageUrl = this.resolveUrl(imageUrl, url);
+          break;
+        }
       }
     }
   }

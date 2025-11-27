@@ -49,12 +49,6 @@ async function verifyDiscordRequest(request: NextRequest, body: string) {
     return false;
   }
   
-  // Skip verification in development mode for local testing
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[DEV] Skipping Discord signature verification for local testing');
-    return true;
-  }
-  
   try {
     const isValid = await verifyKey(body, signature, timestamp, publicKey);
     return isValid;
@@ -367,29 +361,57 @@ async function processScraping(url: string, channelId?: string, interactionToken
     logs.push(`✅ Completed: ${savedGames.length} games saved`);
     const duration = Date.now() - startTime;
     console.log(`[processScraping] ${logs.join(' → ')} (${duration}ms)`);
-    // Send success notification to Discord
+    // Send appropriate notification to Discord based on results
     if (channelId && interactionToken) {
-      console.log('Sending Discord success notification...');
-      const gamesText = savedGames.length > 0 
-        ? savedGames.map(g => `• ${g.name} (${g.provider})`).join('\n')
-        : 'No new games found (may already exist in database)';
-        
       try {
-        await sendDiscordFollowUp(interactionToken, {
-        content: `✅ **Content Scraping Complete!**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Processed:** ${games.length}\n**New Games Added:** ${savedGames.length}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored locally\n🗄️ **Database:** Updated automatically\n🚀 **Website:** Changes deployed!`,
-        embeds: [{
-          color: 0x00ff00,
-          timestamp: new Date().toISOString(),
-          footer: { text: "SlotVerse Content Scraper • Images downloaded successfully!" }
-        }]
-      });
-      console.log('Discord success notification sent successfully');
-    } catch (discordError) {
-      console.error('Failed to send Discord success notification:', discordError);
+        if (savedGames.length > 0) {
+          // Success: New games were added
+          console.log('Sending Discord success notification...');
+          const gamesText = savedGames.map(g => `• ${g.name} (${g.provider})`).join('\n');
+          
+          await sendDiscordFollowUp(interactionToken, {
+            content: `✅ **Content Scraping Complete!**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Processed:** ${games.length}\n**New Games Added:** ${savedGames.length}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored locally\n🗄️ **Database:** Updated automatically\n🚀 **Website:** Changes deployed!`,
+            embeds: [{
+              color: 0x00ff00, // Green
+              timestamp: new Date().toISOString(),
+              footer: { text: "SlotVerse Content Scraper • New games added!" }
+            }]
+          });
+          console.log('Discord success notification sent successfully');
+        } else if (games.length > 0) {
+          // Warning: Games found but already exist (duplicates)
+          console.log('Sending Discord duplicate notification...');
+          const gameNames = games.map((g: any) => g.name).join(', ');
+          
+          await sendDiscordFollowUp(interactionToken, {
+            content: `⚠️ **Games Already Exist**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Found:** ${games.length}\n**Status:** All games already exist in database\n\n**Games:**\n${gameNames}\n\n💡 **Suggestion:** Try a different game URL or check if this content was previously scraped.`,
+            embeds: [{
+              color: 0xffa500, // Orange
+              timestamp: new Date().toISOString(),
+              footer: { text: "SlotVerse Content Scraper • Duplicate detection" }
+            }]
+          });
+          console.log('Discord duplicate notification sent successfully');
+        } else {
+          // Error: No games found at all
+          console.log('Sending Discord no-games notification...');
+          
+          await sendDiscordFollowUp(interactionToken, {
+            content: `❌ **No Games Found**\n\n🔗 **Source:** ${url}\n\n**Issue:** No game content could be extracted from this URL\n\n💡 **Troubleshooting:**\n• Verify the URL contains game information\n• Check if the page structure is supported\n• Try a direct game page URL instead of a category page`,
+            embeds: [{
+              color: 0xff6b6b, // Light red
+              timestamp: new Date().toISOString(),
+              footer: { text: "SlotVerse Content Scraper • No content found" }
+            }]
+          });
+          console.log('Discord no-games notification sent successfully');
+        }
+      } catch (discordError) {
+        console.error('Failed to send Discord notification:', discordError);
+      }
+    } else {
+      console.error('Missing channelId or interactionToken for Discord notification');
     }
-  } else {
-    console.error('Missing channelId or interactionToken for Discord success notification');
-  }
 
   } catch (error: any) {
     const duration = Date.now() - startTime;
