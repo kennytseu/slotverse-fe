@@ -395,7 +395,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
               max_win: game.maxWin || undefined,
               features: JSON.stringify([]),
               description: `${gameName} is a slot game${providerName !== "Unknown" ? ` by ${providerName}` : ''}.`,
-              image_url: game.image || undefined,
+              image_url: game.imageUrl || undefined,
               demo_url: game.demoUrl || undefined,
               source_url: url,
               is_featured: true,
