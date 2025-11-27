@@ -255,18 +255,22 @@ async function handleCopyCommand(options: any[], body: any) {
 
 async function processScraping(url: string, channelId?: string, interactionToken?: string) {
   try {
-    // This would need to be implemented as a follow-up webhook
-    // For now, we'll just log the process
     console.log(`Processing scraping for URL: ${url}`);
     
-    const scrapeResult = await handleScrapeUrl({ url });
+    // Add timeout to prevent hanging (4 minutes max)
+    const scrapeResult = await Promise.race([
+      handleScrapeUrl({ url }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
+      )
+    ]) as any;
     
     if (!scrapeResult.success) {
       console.error('Scraping failed:', scrapeResult.error);
       
       // Send failure notification to Discord
       if (channelId && interactionToken) {
-        await sendDiscordFollowUp(channelId, {
+        await sendDiscordFollowUp(interactionToken, {
           content: `❌ **Content Scraping Failed**\n\n🔗 **URL:** ${url}\n\n**Error:** ${scrapeResult.error}\n\n💡 **Troubleshooting:**\n• Check if the URL is accessible\n• Verify the site structure hasn't changed\n• Try a different game URL`,
           embeds: [{
             color: 0xff0000,
@@ -323,7 +327,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
         ? savedGames.map(g => `• ${g.name} (${g.provider})`).join('\n')
         : 'No new games found (may already exist in database)';
         
-      await sendDiscordFollowUp(channelId, {
+      await sendDiscordFollowUp(interactionToken, {
         content: `✅ **Content Scraping Complete!**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Processed:** ${games.length}\n**New Games Added:** ${savedGames.length}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored locally\n🗄️ **Database:** Updated automatically\n🚀 **Website:** Changes deployed!`,
         embeds: [{
           color: 0x00ff00,
@@ -338,7 +342,7 @@ async function processScraping(url: string, channelId?: string, interactionToken
     
     // Send error notification to Discord
     if (channelId && interactionToken) {
-      await sendDiscordFollowUp(channelId, {
+      await sendDiscordFollowUp(interactionToken, {
         content: `❌ **Scraping Process Error**\n\n🔗 **URL:** ${url}\n\n**Error:** ${error instanceof Error ? error.message : String(error)}\n\nPlease try again or contact support if the issue persists.`,
         embeds: [{
           color: 0xff0000,
@@ -613,14 +617,13 @@ async function processAIRequest(instruction: string, channelId?: string, interac
 }
 
 // Function to send follow-up messages to Discord
-async function sendDiscordFollowUp(channelId: string, message: any): Promise<void> {
+async function sendDiscordFollowUp(interactionToken: string, message: any): Promise<void> {
   try {
-    const discordApiUrl = `https://discord.com/api/v10/channels/${channelId}/messages`;
+    const discordApiUrl = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}/messages/@original`;
     
     const response = await fetch(discordApiUrl, {
-      method: 'POST',
+      method: 'PATCH',
       headers: {
-        'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(message)
