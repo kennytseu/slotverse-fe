@@ -536,8 +536,8 @@ async function handleBuildCommand(options: any[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `Discord Build Request: ${instruction}`,
-        source: 'discord'
+        prompt: `Discord Build Request: ${instruction}`,
+        sessionId: 'discord-build'
       })
     });
 
@@ -604,8 +604,8 @@ async function handleEditCommand(options: any[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `Discord Edit Request: ${instruction}`,
-        source: 'discord'
+        prompt: `Discord Edit Request: ${instruction}`,
+        sessionId: 'discord-edit'
       })
     });
 
