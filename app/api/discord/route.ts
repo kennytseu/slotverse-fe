@@ -592,14 +592,36 @@ async function processAIRequest(instruction: string, channelId?: string, taskTyp
     if (!agentResponse.ok) {
       console.error('AI agent request failed:', agentResponse.status);
       
+      // Get error details
+      let errorMessage = `The AI agent encountered an error (${agentResponse.status}).`;
+      let troubleshooting = "• Check if the instruction is clear\n• Verify the AI agent is running\n• Try a simpler request first";
+      
+      try {
+        const errorData = await agentResponse.json();
+        if (errorData.error) {
+          if (errorData.error.includes('quota') || errorData.error.includes('429')) {
+            errorMessage = "🚫 **OpenAI API Quota Exceeded**\n\nYour OpenAI account has run out of credits or hit the usage limit.";
+            troubleshooting = "• Add credits to your OpenAI account at platform.openai.com/account/billing\n• Upgrade your OpenAI plan\n• Wait for quota reset if on free tier\n• Contact your admin to resolve billing issues";
+          } else if (errorData.error.includes('401')) {
+            errorMessage = "🔑 **OpenAI API Authentication Failed**\n\nThe API key is invalid or expired.";
+            troubleshooting = "• Check OPENAI_API_KEY environment variable\n• Verify the API key is correct\n• Regenerate API key if needed";
+          } else {
+            errorMessage = `🐛 **AI Agent Error**\n\n${errorData.error}`;
+          }
+        }
+      } catch (e) {
+        // If we can't parse the error, use the status code
+      }
+      
       // Send failure notification to Discord
       if (channelId) {
         await sendDiscordFollowUp(channelId, {
-          content: `❌ **${taskType === 'build' ? 'Build' : 'Edit'} Task Failed**\n\nThe AI agent encountered an error (${agentResponse.status}). Please try again or check the logs.`,
+          content: `❌ **${taskType === 'build' ? 'Build' : 'Edit'} Task Failed**\n\n${errorMessage}`,
           embeds: [{
-            title: "🔍 Troubleshooting",
+            title: "🔧 How to Fix This",
             color: 0xff0000,
-            description: "• Check if the instruction is clear\n• Verify the AI agent is running\n• Try a simpler request first",
+            description: troubleshooting,
+            footer: { text: "SlotVerse AI Agent • Error occurred during processing" }
           }]
         });
       }
@@ -658,9 +680,22 @@ async function sendDiscordFollowUp(channelId: string, message: any): Promise<voi
     });
 
     if (!response.ok) {
-      console.error('Failed to send Discord follow-up:', response.status);
+      const errorText = await response.text();
+      console.error(`Failed to send Discord follow-up: ${response.status} - ${errorText}`);
+      
+      // If Discord follow-up fails, at least log the message that would have been sent
+      console.log('Message that failed to send:', JSON.stringify(message, null, 2));
+      
+      if (response.status === 403) {
+        console.error('Discord bot lacks "Send Messages" permission in this channel');
+      } else if (response.status === 401) {
+        console.error('Discord bot token is invalid or expired');
+      }
+    } else {
+      console.log('Discord follow-up sent successfully');
     }
   } catch (error) {
     console.error('Discord follow-up error:', error);
+    console.log('Message that failed to send:', JSON.stringify(message, null, 2));
   }
 }
