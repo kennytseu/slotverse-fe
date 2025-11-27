@@ -153,6 +153,12 @@ export async function POST(req: NextRequest) {
         case 'help':
           return await handleHelpCommand();
         
+        case 'build':
+          return await handleBuildCommand(options);
+        
+        case 'edit':
+          return await handleEditCommand(options);
+        
         default:
           return NextResponse.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -484,6 +490,11 @@ async function handleHelpCommand() {
         inline: false
       },
       {
+        name: "💻 **Code Development**",
+        value: "`/build [instruction]` - Ask AI to build/modify code\n`/edit [file] [changes]` - Edit specific files",
+        inline: false
+      },
+      {
         name: "🌐 **Supported Sites**",
         value: "• SlotCatalog.com\n• SlotsLaunch.com\n• Demo sites with game data\n• Any site with structured game info",
         inline: false
@@ -500,4 +511,136 @@ async function handleHelpCommand() {
       embeds: [embed]
     }
   });
+}
+
+async function handleBuildCommand(options: any[]) {
+  const instructionOption = options?.find(opt => opt.name === 'instruction');
+  const instruction = instructionOption?.value;
+
+  if (!instruction) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: "❌ Please provide an instruction for what to build.",
+        flags: 64
+      }
+    });
+  }
+
+  try {
+    // Send the instruction to the AI agent
+    const agentResponse = await fetch(`${process.env.VERCEL_URL || 'https://slotverse.net'}/api/agent/dev`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: `Discord Build Request: ${instruction}`,
+        source: 'discord'
+      })
+    });
+
+    if (!agentResponse.ok) {
+      throw new Error(`Agent API error: ${agentResponse.status}`);
+    }
+
+    const result = await agentResponse.json();
+
+    const embed = {
+      title: "🤖 AI Development Task Started",
+      color: 0x00ff00,
+      fields: [
+        { name: "📝 Instruction", value: instruction, inline: false },
+        { name: "🔄 Status", value: "Processing with AI agent...", inline: true },
+        { name: "🚀 Deployment", value: "Will auto-deploy when complete", inline: true }
+      ],
+      footer: {
+        text: "Check GitHub commits for progress updates"
+      }
+    };
+
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        embeds: [embed]
+      }
+    });
+
+  } catch (error: any) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `❌ Build command failed: ${error.message}`,
+        flags: 64
+      }
+    });
+  }
+}
+
+async function handleEditCommand(options: any[]) {
+  const fileOption = options?.find(opt => opt.name === 'file');
+  const changesOption = options?.find(opt => opt.name === 'changes');
+  const filePath = fileOption?.value;
+  const changes = changesOption?.value;
+
+  if (!filePath || !changes) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: "❌ Please provide both file path and changes to make.",
+        flags: 64
+      }
+    });
+  }
+
+  try {
+    // Send the edit request to the AI agent
+    const instruction = `Edit the file ${filePath}: ${changes}`;
+    const agentResponse = await fetch(`${process.env.VERCEL_URL || 'https://slotverse.net'}/api/agent/dev`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: `Discord Edit Request: ${instruction}`,
+        source: 'discord'
+      })
+    });
+
+    if (!agentResponse.ok) {
+      throw new Error(`Agent API error: ${agentResponse.status}`);
+    }
+
+    const result = await agentResponse.json();
+
+    const embed = {
+      title: "✏️ File Edit Task Started",
+      color: 0x0099ff,
+      fields: [
+        { name: "📁 File", value: filePath, inline: true },
+        { name: "📝 Changes", value: changes.substring(0, 100) + (changes.length > 100 ? '...' : ''), inline: false },
+        { name: "🔄 Status", value: "Processing with AI agent...", inline: true },
+        { name: "🚀 Deployment", value: "Will auto-deploy when complete", inline: true }
+      ],
+      footer: {
+        text: "Check GitHub commits for the actual changes made"
+      }
+    };
+
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        embeds: [embed]
+      }
+    });
+
+  } catch (error: any) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `❌ Edit command failed: ${error.message}`,
+        flags: 64
+      }
+    });
+  }
 }

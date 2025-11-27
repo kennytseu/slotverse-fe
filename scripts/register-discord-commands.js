@@ -38,6 +38,36 @@ const commands = [
     name: 'help',
     description: 'Show available SlotVerse bot commands',
   },
+  {
+    name: 'build',
+    description: 'Ask AI to build/modify code for SlotVerse',
+    options: [
+      {
+        name: 'instruction',
+        description: 'What do you want to build or modify?',
+        type: 3, // STRING
+        required: true,
+      },
+    ],
+  },
+  {
+    name: 'edit',
+    description: 'Edit a specific file in the codebase',
+    options: [
+      {
+        name: 'file',
+        description: 'File path to edit (e.g., components/Header.tsx)',
+        type: 3, // STRING
+        required: true,
+      },
+      {
+        name: 'changes',
+        description: 'What changes to make to the file',
+        type: 3, // STRING
+        required: true,
+      },
+    ],
+  },
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
