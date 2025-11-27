@@ -89,7 +89,7 @@ class ProviderScraper {
         allProviders.push(...pageProviders);
         
         // Check if there are more pages (look for pagination)
-        const hasNextPage = this.hasNextPage(scrapeResult.html, currentPage, maxPages);
+        const hasNextPage = this.hasNextPage(html, currentPage, maxPages);
         if (!hasNextPage) {
           console.log(`[ProviderScraper] No more pages found, stopping at page ${currentPage}`);
           break;
