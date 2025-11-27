@@ -97,9 +97,9 @@ export async function getGameBySlug(slug: string): Promise<Game | null> {
 export async function getAllGames(limit: number = 50, offset: number = 0): Promise<Game[]> {
   const connection = getPool();
   
+  // Use string interpolation for LIMIT/OFFSET to avoid MySQL parameter binding issues
   const [rows] = await connection.execute(
-    'SELECT * FROM games ORDER BY created_at DESC LIMIT ? OFFSET ?',
-    [limit, offset]
+    `SELECT * FROM games ORDER BY created_at DESC LIMIT ${parseInt(String(limit))} OFFSET ${parseInt(String(offset))}`
   );
   
   return rows as Game[];
@@ -108,9 +108,9 @@ export async function getAllGames(limit: number = 50, offset: number = 0): Promi
 export async function getFeaturedGames(limit: number = 12): Promise<Game[]> {
   const connection = getPool();
   
+  // Use string interpolation for LIMIT to avoid MySQL parameter binding issues
   const [rows] = await connection.execute(
-    'SELECT * FROM games WHERE is_featured = true ORDER BY created_at DESC LIMIT ?',
-    [limit]
+    `SELECT * FROM games WHERE is_featured = true ORDER BY created_at DESC LIMIT ${parseInt(String(limit))}`
   );
   
   return rows as Game[];
@@ -119,9 +119,10 @@ export async function getFeaturedGames(limit: number = 12): Promise<Game[]> {
 export async function searchGames(query: string, limit: number = 20): Promise<Game[]> {
   const connection = getPool();
   
+  // Use string interpolation for LIMIT to avoid MySQL parameter binding issues
   const [rows] = await connection.execute(
-    'SELECT * FROM games WHERE name LIKE ? OR provider LIKE ? ORDER BY created_at DESC LIMIT ?',
-    [`%${query}%`, `%${query}%`, limit]
+    `SELECT * FROM games WHERE name LIKE ? OR provider LIKE ? ORDER BY created_at DESC LIMIT ${parseInt(String(limit))}`,
+    [`%${query}%`, `%${query}%`]
   );
   
   return rows as Game[];
