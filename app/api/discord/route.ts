@@ -10,6 +10,7 @@ import {
 } from "@/lib/database/mysql";
 import { handleScrapeUrl } from "@/lib/agent/tool-functions";
 import { writeFile } from "@/lib/agent/git";
+import { scrapeProviderDirectory } from "@/lib/utils/provider-scraper";
 
 import { verifyKey } from 'discord-interactions';
 
@@ -151,6 +152,9 @@ export async function POST(req: NextRequest) {
         case 'copy':
           return await handleCopyCommand(options, body);
         
+        case 'providers':
+          return await handleProvidersCommand(options, body);
+        
         case 'dbsetup':
           return await handleDbSetupCommand();
         
@@ -269,9 +273,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
   const logs: string[] = [];
   const startTime = Date.now();
   
-  // Helper function to send debug follow-ups (reduced for performance)
+  // Helper function to send debug follow-ups
   async function sendDebugFollowUp(step: string, message: string) {
-    if (interactionToken && (step === "1" || step === "2" || step === "3" || step === "5" || step === "ERROR")) {
+    if (interactionToken) {
       try {
         await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`, {
           method: 'POST',
@@ -471,6 +475,172 @@ async function processScraping(url: string, channelId?: string, interactionToken
   }
 }
 
+async function processProviderScraping(url: string, pages: number, channelId: string, interactionToken: string) {
+  const logs: string[] = [];
+  const startTime = Date.now();
+  
+  // Helper function to send debug follow-ups
+  async function sendDebugFollowUp(step: string, message: string) {
+    if (interactionToken) {
+      try {
+        await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interactionToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🏢 **Provider Step ${step}**: ${message}`,
+            embeds: [{
+              color: step === "ERROR" ? 0xff0000 : 0x3498db,
+              timestamp: new Date().toISOString(),
+              footer: { text: `SlotVerse Providers • ${new Date().toLocaleTimeString()}` }
+            }]
+          })
+        });
+        console.log(`[PROVIDER DEBUG] Sent follow-up: ${step} - ${message}`);
+      } catch (error) {
+        console.log(`[PROVIDER DEBUG] Failed to send follow-up: ${step} - ${error}`);
+      }
+    }
+  }
+  
+  try {
+    logs.push(`🏢 Starting provider scrape: ${url} (${pages} pages)`);
+    await sendDebugFollowUp("1", "Provider scraping started");
+
+    // Call the provider scraping function with a timeout
+    let scrapeResult;
+    try {
+      await sendDebugFollowUp("2", "Initiating provider scraper");
+      scrapeResult = await Promise.race([
+        scrapeProviderDirectory(url, pages),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Provider scraping timeout after 120 seconds')), 120 * 1000)
+        )
+      ]) as any;
+    } catch (timeoutError: any) {
+      logs.push(`❌ Provider scraping failed: ${timeoutError.message}`);
+      console.error('[processProviderScraping] Timeout error:', timeoutError);
+      
+      if (interactionToken) {
+        await sendDebugFollowUp("ERROR", `Provider scraping failed: ${timeoutError.message}`);
+        await sendDiscordFollowUp(interactionToken, {
+          embeds: [{
+            title: "❌ Provider Scraping Failed",
+            description: `**Error:** ${timeoutError.message}\n**URL:** ${url}\n**Duration:** ${Math.round((Date.now() - startTime) / 1000)}s`,
+            color: 0xff0000,
+            timestamp: new Date().toISOString(),
+            footer: { text: "SlotVerse Provider Scraper" }
+          }]
+        });
+      }
+      return;
+    }
+
+    await sendDebugFollowUp("3", `Provider scraping successful! Found ${scrapeResult?.providers?.length || 0} providers`);
+    logs.push(`✅ Provider scraping completed: ${scrapeResult?.providers?.length || 0} providers found`);
+
+    // Process and save providers to database
+    if (scrapeResult?.providers && scrapeResult.providers.length > 0) {
+      await sendDebugFollowUp("4", `Processing ${scrapeResult.providers.length} providers for database`);
+      
+      // Here you would save providers to database
+      // For now, just log them
+      logs.push(`📊 Providers found: ${scrapeResult.providers.map((p: any) => p.name).join(', ')}`);
+      
+      await sendDebugFollowUp("5", `Provider processing complete: ${scrapeResult.providers.length} providers processed`);
+    }
+
+    // Send final success notification
+    const duration = Math.round((Date.now() - startTime) / 1000);
+    const providersCount = scrapeResult?.providers?.length || 0;
+    
+    if (interactionToken) {
+      await sendDiscordFollowUp(interactionToken, {
+        embeds: [{
+          title: "✅ Provider Scraping Complete!",
+          description: `Successfully scraped **${providersCount} providers** from ${pages} page(s)`,
+          fields: [
+            { name: "📝 Source URL", value: url, inline: false },
+            { name: "📄 Pages Scraped", value: pages.toString(), inline: true },
+            { name: "🏢 Providers Found", value: providersCount.toString(), inline: true },
+            { name: "⏱️ Duration", value: `${duration}s`, inline: true }
+          ],
+          color: 0x00ff00,
+          timestamp: new Date().toISOString(),
+          footer: { text: "SlotVerse Provider Scraper" }
+        }]
+      });
+    }
+
+    // Output batched logs
+    console.log('\n=== PROVIDER SCRAPING LOGS ===');
+    logs.forEach(log => console.log(log));
+    console.log('=== END PROVIDER LOGS ===\n');
+
+  } catch (error: any) {
+    logs.push(`❌ Provider scraping error: ${error.message}`);
+    console.error('[processProviderScraping] Error:', error);
+    
+    if (interactionToken) {
+      await sendDebugFollowUp("ERROR", `Provider scraping error: ${error.message}`);
+      await sendDiscordFollowUp(interactionToken, {
+        embeds: [{
+          title: "❌ Provider Scraping Error",
+          description: `**Error:** ${error.message}\n**URL:** ${url}\n**Duration:** ${Math.round((Date.now() - startTime) / 1000)}s`,
+          color: 0xff0000,
+          timestamp: new Date().toISOString(),
+          footer: { text: "SlotVerse Provider Scraper" }
+        }]
+      });
+    }
+  }
+}
+
+async function handleProvidersCommand(options: any[], body: any) {
+  const urlOption = options?.find(opt => opt.name === 'url');
+  const pagesOption = options?.find(opt => opt.name === 'pages');
+  const url = urlOption?.value;
+  const pages = pagesOption?.value || 1;
+
+  if (!url) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: "❌ Please provide a provider directory URL to scrape.",
+        flags: 64
+      }
+    });
+  }
+
+  // Validate pages parameter
+  if (pages < 1 || pages > 12) {
+    return NextResponse.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: "❌ Pages must be between 1 and 12.",
+        flags: 64
+      }
+    });
+  }
+
+  // Send immediate response to Discord (must be within 3 seconds)
+  const immediateResponse = NextResponse.json({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content: `🏢 **Provider Scraping Started**\n\n📝 **URL:** ${url}\n📄 **Pages:** ${pages}\n\n⏳ Extracting provider information... This may take several minutes.\n\n🔔 Your team will be notified when complete!`
+    }
+  });
+
+  // Process the provider scraping in the background (don't await)
+  // Extract values safely to avoid Proxy issues
+  const channelId = String(body.channel_id);
+  const token = String(body.token);
+  
+  // Process the provider scraping in the background (don't await)
+  processProviderScraping(url, pages, channelId, token).catch(console.error);
+
+  return immediateResponse;
+}
+
 async function handleDbSetupCommand() {
   try {
     const dbConnected = await testConnection();
@@ -552,7 +722,7 @@ async function handleHelpCommand() {
       },
       {
         name: "🎮 **Game Management**",
-        value: "`/copy [url]` - Scrape games from a website\n`/games [limit]` - List recent games in database",
+        value: "`/copy [url]` - Scrape games from a website\n`/providers [url] [pages]` - Scrape providers from directory\n`/games [limit]` - List recent games in database",
         inline: false
       },
       {

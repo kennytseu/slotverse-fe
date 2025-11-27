@@ -19,6 +19,24 @@ const commands = [
     ],
   },
   {
+    name: 'providers',
+    description: 'Scrape game providers from a provider directory page',
+    options: [
+      {
+        name: 'url',
+        description: 'The provider directory URL to scrape (e.g., slotslaunch.com/providers)',
+        type: 3, // STRING
+        required: true,
+      },
+      {
+        name: 'pages',
+        description: 'Number of pages to scrape (default: 1, max: 12)',
+        type: 4, // INTEGER
+        required: false,
+      },
+    ],
+  },
+  {
     name: 'dbsetup',
     description: 'Initialize database tables for SlotVerse',
   },
