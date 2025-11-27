@@ -25,6 +25,9 @@ class ProviderScraper {
     try {
       console.log(`[ProviderScraper] Fetching: ${url}`);
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
@@ -34,8 +37,10 @@ class ProviderScraper {
           'Connection': 'keep-alive',
           'Upgrade-Insecure-Requests': '1',
         },
-        timeout: 30000
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         console.error(`[ProviderScraper] HTTP ${response.status}: ${response.statusText}`);
