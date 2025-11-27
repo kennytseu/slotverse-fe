@@ -270,14 +270,22 @@ async function processScraping(url: string, channelId?: string, interactionToken
       
       // Send failure notification to Discord
       if (channelId && interactionToken) {
-        await sendDiscordFollowUp(interactionToken, {
-          content: `❌ **Content Scraping Failed**\n\n🔗 **URL:** ${url}\n\n**Error:** ${scrapeResult.error}\n\n💡 **Troubleshooting:**\n• Check if the URL is accessible\n• Verify the site structure hasn't changed\n• Try a different game URL`,
-          embeds: [{
-            color: 0xff0000,
-            timestamp: new Date().toISOString(),
-            footer: { text: "SlotVerse Content Scraper" }
-          }]
-        });
+        console.log('Sending Discord failure notification...');
+        try {
+          await sendDiscordFollowUp(interactionToken, {
+            content: `❌ **Content Scraping Failed**\n\n🔗 **URL:** ${url}\n\n**Error:** ${scrapeResult.error}\n\n💡 **Troubleshooting:**\n• Check if the URL is accessible\n• Verify the site structure hasn't changed\n• Try a different game URL`,
+            embeds: [{
+              color: 0xff0000,
+              timestamp: new Date().toISOString(),
+              footer: { text: "SlotVerse Content Scraper" }
+            }]
+          });
+          console.log('Discord failure notification sent successfully');
+        } catch (discordError) {
+          console.error('Failed to send Discord failure notification:', discordError);
+        }
+      } else {
+        console.error('Missing channelId or interactionToken for Discord notification');
       }
       return;
     }
@@ -323,11 +331,13 @@ async function processScraping(url: string, channelId?: string, interactionToken
     console.log(`Scraping completed: ${savedGames.length} games saved`);
     // Send success notification to Discord
     if (channelId && interactionToken) {
+      console.log('Sending Discord success notification...');
       const gamesText = savedGames.length > 0 
         ? savedGames.map(g => `• ${g.name} (${g.provider})`).join('\n')
         : 'No new games found (may already exist in database)';
         
-      await sendDiscordFollowUp(interactionToken, {
+      try {
+        await sendDiscordFollowUp(interactionToken, {
         content: `✅ **Content Scraping Complete!**\n\n🔗 **Source:** ${url}\n\n🎰 **Games Processed:** ${games.length}\n**New Games Added:** ${savedGames.length}\n\n**Games:**\n${gamesText}\n\n🖼️ **Images:** Downloaded and stored locally\n🗄️ **Database:** Updated automatically\n🚀 **Website:** Changes deployed!`,
         embeds: [{
           color: 0x00ff00,
@@ -335,14 +345,22 @@ async function processScraping(url: string, channelId?: string, interactionToken
           footer: { text: "SlotVerse Content Scraper • Images downloaded successfully!" }
         }]
       });
+      console.log('Discord success notification sent successfully');
+    } catch (discordError) {
+      console.error('Failed to send Discord success notification:', discordError);
     }
+  } else {
+    console.error('Missing channelId or interactionToken for Discord success notification');
+  }
 
   } catch (error) {
     console.error('Scraping process error:', error);
     
     // Send error notification to Discord
     if (channelId && interactionToken) {
-      await sendDiscordFollowUp(interactionToken, {
+      console.log('Sending Discord error notification...');
+      try {
+        await sendDiscordFollowUp(interactionToken, {
         content: `❌ **Scraping Process Error**\n\n🔗 **URL:** ${url}\n\n**Error:** ${error instanceof Error ? error.message : String(error)}\n\nPlease try again or contact support if the issue persists.`,
         embeds: [{
           color: 0xff0000,
@@ -350,7 +368,13 @@ async function processScraping(url: string, channelId?: string, interactionToken
           footer: { text: "SlotVerse Content Scraper" }
         }]
       });
+      console.log('Discord error notification sent successfully');
+    } catch (discordError) {
+      console.error('Failed to send Discord error notification:', discordError);
     }
+  } else {
+    console.error('Missing channelId or interactionToken for Discord error notification');
+  }
   }
 }
 
