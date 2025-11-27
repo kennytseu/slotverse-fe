@@ -255,6 +255,9 @@ async function processScraping(url: string, channelId?: string, interactionToken
   try {
     console.log(`[processScraping] Starting for URL: ${url}`);
     console.log(`[processScraping] About to log channelId...`);
+    console.log(`[processScraping] typeof channelId = ${typeof channelId}`);
+    console.log(`[processScraping] channelId raw =`, channelId);
+    console.log(`[processScraping] next: converting to String...`);
     console.log(`[processScraping] Channel ID: ${String(channelId)}`);
     console.log(`[processScraping] About to log interactionToken...`);
     console.log(`[processScraping] Interaction Token: ${interactionToken ? 'SET' : 'NULL/UNDEFINED'}`);
