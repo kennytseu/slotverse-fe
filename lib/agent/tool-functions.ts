@@ -213,7 +213,9 @@ export async function handleScrapeUrl({
   
   // Test if the issue is with parameter logging
   try {
-    console.log(`[handleScrapeUrl] Parameters:`, { url, targetGame, extractType });
+    console.log(`[handleScrapeUrl] URL parameter: ${String(url)}`);
+    console.log(`[handleScrapeUrl] targetGame parameter: ${String(targetGame)}`);
+    console.log(`[handleScrapeUrl] extractType parameter: ${String(extractType)}`);
     console.log(`[handleScrapeUrl] Parameters logged successfully`);
   } catch (paramError) {
     console.error(`[handleScrapeUrl] Error logging parameters:`, paramError);
