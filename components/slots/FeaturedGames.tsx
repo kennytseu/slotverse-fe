@@ -214,7 +214,14 @@ export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
               rtp: game.rtp ? `${game.rtp}%` : "96.00%",
               volatility: game.volatility || "Medium",
               maxWin: game.max_win || "1,000x",
-              features: game.features ? JSON.parse(game.features) : ["Standard Features"],
+              features: (() => {
+                try {
+                  return game.features ? JSON.parse(game.features) : ["Standard Features"];
+                } catch (e) {
+                  console.warn('Invalid JSON in features for game:', game.name, game.features);
+                  return ["Standard Features"];
+                }
+              })(),
               isNew: game.is_new || false,
               isFeatured: game.is_featured || false
             }));
