@@ -468,10 +468,59 @@ function extractSlotGameData(html: string, url: string, targetGame?: string, ext
     }
   });
 
-  // Remove duplicates and clean data
-  data.games = data.games.filter((game: GameData, index: number, self: GameData[]) => 
-    index === self.findIndex((g: GameData) => g.name.toLowerCase() === game.name.toLowerCase())
-  );
+  // Remove duplicates and filter out non-games
+  data.games = data.games.filter((game: GameData, index: number, self: GameData[]) => {
+    const name = game.name.toLowerCase();
+    
+    // Remove duplicates
+    const isUnique = index === self.findIndex((g: GameData) => g.name.toLowerCase() === name);
+    
+    // Filter out obvious non-games
+    const isValidGame = name.length > 2 && 
+                       !name.includes('logo') && 
+                       !name.includes('home') && 
+                       !name.includes('spin') && 
+                       !name.includes('casino') && 
+                       !name.includes('joey') && 
+                       !name.includes('phoebe') && 
+                       !name.includes('rachel') && 
+                       !name.includes('ross') && 
+                       !name.includes('monica') && 
+                       !name.includes('chandler') && 
+                       !name.includes('bovada') && 
+                       !name.includes('betus') && 
+                       !name.includes('vegas') && 
+                       !name.includes('jackpot capital') && 
+                       !name.includes('grande') && 
+                       !name.includes('launch') && 
+                       !name.includes('paradise') && 
+                       !name.includes('aces') && 
+                       !name.includes('basketball') && 
+                       !name.includes('football') && 
+                       !name.includes('hockey') && 
+                       !name.includes('christmas') && 
+                       !name.includes('thanksgiving') && 
+                       !name.includes('friday') && 
+                       !name.includes('comedian') && 
+                       !name.includes('singer') && 
+                       !name.includes('witch') && 
+                       !name.includes('superhuman') && 
+                       !name.includes('damian') && 
+                       !name.includes('marc') && 
+                       !name.includes('001x') && 
+                       !name.includes('cc_silver') && 
+                       !name.includes('sunnyspins') && 
+                       !name.includes('kudos') && 
+                       !name.match(/^[a-z]$/) && 
+                       !name.includes('click') &&
+                       !name.includes('minion') &&
+                       name !== 'askme' &&
+                       name !== 'you likey?' &&
+                       name !== 's launch' &&
+                       name !== 's paradise';
+    
+    return isUnique && isValidGame;
+  });
   
   data.providers = [...new Set(data.providers)];
 

@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import GameCard from "./GameCard";
 
 interface FeaturedGamesProps {
   searchQuery: string;
 }
 
-const featuredGames = [
+interface Game {
+  id: number;
+  name: string;
+  provider: string;
+  image: string;
+  rtp: string;
+  volatility: string;
+  maxWin: string;
+  features: string[];
+  isNew: boolean;
+  isFeatured: boolean;
+}
+
+const fallbackGames = [
   {
     id: 1764184961074,
     name: "Wicked Whiskers by Indigo Magic",
@@ -135,11 +148,96 @@ const featuredGames = [
 export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProvider, setSelectedProvider] = useState("all");
+  const [games, setGames] = useState<Game[]>(fallbackGames);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchGames() {
+      try {
+        const response = await fetch('/api/games');
+        if (response.ok) {
+          const dbGames = await response.json();
+          
+          // Filter out obvious non-games and convert to our format
+          const validGames = dbGames
+            .filter((game: any) => {
+              const name = game.name.toLowerCase();
+              // Filter out obvious non-games
+              const isValidGame = !name.includes('logo') && 
+                                !name.includes('home') && 
+                                !name.includes('spin') && 
+                                !name.includes('casino') && 
+                                !name.includes('joey') && 
+                                !name.includes('phoebe') && 
+                                !name.includes('rachel') && 
+                                !name.includes('ross') && 
+                                !name.includes('monica') && 
+                                !name.includes('chandler') && 
+                                !name.includes('bovada') && 
+                                !name.includes('betus') && 
+                                !name.includes('vegas') && 
+                                !name.includes('jackpot capital') && 
+                                name.length > 2 && 
+                                !name.match(/^[a-z]$/) &&
+                                !name.includes('001x') &&
+                                !name.includes('cc_silver') &&
+                                !name.includes('sunnyspins') &&
+                                !name.includes('kudos') &&
+                                !name.includes('grande') &&
+                                !name.includes('launch') &&
+                                !name.includes('paradise') &&
+                                !name.includes('aces') &&
+                                !name.includes('basketball') &&
+                                !name.includes('football') &&
+                                !name.includes('hockey') &&
+                                !name.includes('christmas') &&
+                                !name.includes('thanksgiving') &&
+                                !name.includes('friday') &&
+                                !name.includes('comedian') &&
+                                !name.includes('singer') &&
+                                !name.includes('witch') &&
+                                !name.includes('superhuman') &&
+                                !name.includes('damian') &&
+                                !name.includes('marc');
+              return isValidGame;
+            })
+            .map((game: any) => ({
+              id: game.id,
+              name: game.name,
+              provider: game.provider === 'Unknown' ? 'Various Providers' : game.provider,
+              image: game.image_url || "/api/placeholder/300/200",
+              rtp: game.rtp ? `${game.rtp}%` : "96.00%",
+              volatility: game.volatility || "Medium",
+              maxWin: game.max_win || "1,000x",
+              features: game.features ? JSON.parse(game.features) : ["Standard Features"],
+              isNew: game.is_new || false,
+              isFeatured: game.is_featured || false
+            }));
+
+          // Combine with fallback games if we have valid games
+          if (validGames.length > 0) {
+            setGames([...validGames, ...fallbackGames]);
+          } else {
+            setGames(fallbackGames);
+          }
+        } else {
+          setGames(fallbackGames);
+        }
+      } catch (error) {
+        console.error('Failed to fetch games:', error);
+        setGames(fallbackGames);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchGames();
+  }, []);
 
   const categories = ["all", "new", "featured", "high-rtp", "jackpots"];
   const providers = ["all", "Pragmatic Play", "NetEnt", "Play'n GO", "Big Time Gaming"];
 
-  const filteredGames = featuredGames.filter(game => {
+  const filteredGames = games.filter(game => {
     const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          game.provider.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -201,11 +299,19 @@ export default function FeaturedGames({ searchQuery }: FeaturedGamesProps) {
         </div>
 
         {/* Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGames.map(game => (
-            <GameCard key={game.id} game={game} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🎰</div>
+            <h3 className="text-xl font-bold text-white mb-2">Loading games...</h3>
+            <p className="text-gray-400">Fetching the latest slot games from database</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredGames.map(game => (
+              <GameCard key={game.id} game={game} />
+            ))}
+          </div>
+        )}
 
         {filteredGames.length === 0 && (
           <div className="text-center py-12">
