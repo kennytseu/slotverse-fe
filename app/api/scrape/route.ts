@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         maxWin: game.maxWin || "N/A",
         features: extractFeatures(game.name),
         description: `${game.name} is a slot game${game.provider ? ` by ${game.provider}` : ''}.`,
-        image: game.image || null,
+        image: game.imageUrl || null,
         demoUrl: game.demoUrl || null,
         sourceUrl: url,
         addedAt: new Date().toISOString()
