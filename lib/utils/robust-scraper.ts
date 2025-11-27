@@ -231,7 +231,7 @@ export class RobustScraper {
       success: games.length > 0,
       data: {
         games,
-        providers: [...new Set(games.map(g => g.provider).filter(Boolean))],
+        providers: [...new Set(games.map(g => g.provider).filter(Boolean) as string[])],
         metadata: {
           sourceUrl: url,
           extractedAt: new Date().toISOString(),
