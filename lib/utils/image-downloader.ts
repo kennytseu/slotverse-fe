@@ -4,14 +4,24 @@ export interface ImageDownloadResult {
   error?: string;
 }
 
-export async function downloadImage(imageUrl: string, gameSlug: string): Promise<ImageDownloadResult> {
+export async function downloadImage(imageUrl: string, gameName: string, gameId?: string | number): Promise<ImageDownloadResult> {
   try {
-    console.log(`Downloading image for ${gameSlug}: ${imageUrl}`);
+    // Create kebab-case filename with ID to prevent duplicates
+    const kebabName = gameName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    
+    const fileNameBase = gameId ? `${gameId}-${kebabName}` : kebabName;
+    
+    console.log(`Downloading image for ${gameName} (${fileNameBase}): ${imageUrl}`);
     
     // Get file extension from URL or default to jpg
     const urlParts = imageUrl.split('.');
     const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
-    const fileName = `${gameSlug}.${extension}`;
+    const fileName = `${fileNameBase}.${extension}`;
     
     // Download the image
     const response = await fetch(imageUrl, {
@@ -128,7 +138,7 @@ export async function downloadGameImages(games: any[]): Promise<any[]> {
     if (game.image && game.slug) {
       console.log(`Processing image for game: ${game.name}`);
       
-      const downloadResult = await downloadImage(game.image, game.slug);
+      const downloadResult = await downloadImage(game.image, game.name, game.id);
       
       if (downloadResult.success) {
         // Update the game with local image path
