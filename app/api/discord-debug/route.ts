@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // Try signature verification
     let isValid = false;
     try {
-      isValid = verifyKey(rawBody, signature, timestamp, publicKey);
+      isValid = await verifyKey(rawBody, signature, timestamp, publicKey);
       console.log('Signature verification result:', isValid);
     } catch (verifyError) {
       console.error('Signature verification error:', verifyError);
