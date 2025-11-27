@@ -20,13 +20,7 @@ async function verifyDiscordRequest(request: NextRequest, body: string) {
   const publicKey = process.env.DISCORD_PUBLIC_KEY;
   
   console.log('Signature verification attempt:');
-  console.log('- Has signature:', !!signature);
-  console.log('- Has timestamp:', !!timestamp);
   console.log('- Has public key:', !!publicKey);
-  console.log('- Public key length:', publicKey?.length);
-  console.log('- Signature:', signature?.substring(0, 20) + '...');
-  console.log('- Timestamp:', timestamp);
-  console.log('- Body length:', body.length);
   
   // Skip verification in development if no public key is set
   if (!publicKey && process.env.NODE_ENV === 'development') {
@@ -40,13 +34,10 @@ async function verifyDiscordRequest(request: NextRequest, body: string) {
   }
   
   try {
-    console.log('Calling verifyKey with body length:', body.length);
     const isValid = await verifyKey(body, signature, timestamp, publicKey);
-    console.log('verifyKey result:', isValid);
     return isValid;
   } catch (error) {
     console.error('Discord signature verification error:', error);
-    console.error('Error details:', error instanceof Error ? error.message : String(error));
     return false;
   }
 }
@@ -93,15 +84,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify signature for all requests (Discord requires this for validation)
-    const isValidSignature = await verifyDiscordRequest(req, rawBody);
-    if (!isValidSignature) {
+    if (!(await verifyDiscordRequest(req, rawBody))) {
       console.error('Discord signature verification failed');
-      // TEMPORARY: Skip signature verification for debugging
-      console.log('⚠️ TEMPORARILY BYPASSING SIGNATURE VERIFICATION FOR DEBUGGING');
-      // return Response.json({ error: 'Invalid signature' }, { status: 401 });
-    } else {
-      console.log('✅ Discord signature verification passed');
+      return Response.json({ error: 'Invalid signature' }, { status: 401 });
     }
+    console.log('✅ Discord signature verification passed');
 
     // Handle Discord PING after signature verification
     if (body.type === 1) { // InteractionType.PING
