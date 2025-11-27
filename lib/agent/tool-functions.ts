@@ -501,7 +501,7 @@ function extractGameDetails(html: string, url: string, game: GameData): void {
       
       // Validate image URL
       if (imageUrl.startsWith('http') && imageUrl.length > 10) {
-        game.image = imageUrl;
+        game.imageUrl = imageUrl;
         break;
       }
     }
