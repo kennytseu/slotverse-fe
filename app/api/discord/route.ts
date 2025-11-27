@@ -257,13 +257,12 @@ async function processScraping(url: string, channelId?: string, interactionToken
   try {
     console.log(`Processing scraping for URL: ${url}`);
     
-    // Add timeout to prevent hanging (4 minutes max)
-    const scrapeResult = await Promise.race([
-      handleScrapeUrl({ url }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
-      )
-    ]) as any;
+    // TEMPORARY: Skip scraping and test Discord notifications directly
+    console.log('TESTING: Skipping scraping, testing Discord notifications...');
+    const scrapeResult = {
+      success: false,
+      error: 'Testing Discord notifications - scraping temporarily disabled'
+    };
     
     if (!scrapeResult.success) {
       console.error('Scraping failed:', scrapeResult.error);
