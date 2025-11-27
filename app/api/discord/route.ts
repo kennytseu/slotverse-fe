@@ -255,15 +255,16 @@ async function handleCopyCommand(options: any[], body: any) {
 
 async function processScraping(url: string, channelId?: string, interactionToken?: string) {
   try {
-    console.log(`Processing scraping for URL: ${url}`);
-    
-    // TEMPORARY: Skip scraping and test Discord notifications directly
-    console.log('TESTING: Skipping scraping, testing Discord notifications...');
-    const scrapeResult = {
-      success: false,
-      error: 'Testing Discord notifications - scraping temporarily disabled',
-      data: { games: [] }
-    };
+    console.log(`[processScraping] Starting for URL: ${url}`);
+    console.log(`[processScraping] Channel ID: ${channelId}, Interaction Token: ${interactionToken}`);
+
+    // Call the actual scraping function with a timeout
+    const scrapeResult = await Promise.race([
+      handleScrapeUrl({ url }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Scraping timeout after 4 minutes')), 4 * 60 * 1000)
+      )
+    ]) as any;
     
     if (!scrapeResult.success) {
       console.error('Scraping failed:', scrapeResult.error);
