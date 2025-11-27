@@ -527,55 +527,18 @@ async function handleBuildCommand(options: any[]) {
     });
   }
 
-  try {
-    // Send the instruction to the AI agent
-    const baseUrl = 'https://slotverse.net'; // Always use main domain
-    const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: `Discord Build Request: ${instruction}`,
-        sessionId: 'discord-build'
-      })
-    });
-
-    if (!agentResponse.ok) {
-      throw new Error(`Agent API error: ${agentResponse.status}`);
+  // Send immediate response to Discord (must be within 3 seconds)
+  const immediateResponse = NextResponse.json({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content: `🤖 **AI Development Task Started**\n\n📝 **Instruction:** ${instruction}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🚀 Changes will be committed to GitHub and auto-deployed when complete!`
     }
+  });
 
-    const result = await agentResponse.json();
+  // Process the AI request in the background (don't await)
+  processAIRequest(instruction).catch(console.error);
 
-    const embed = {
-      title: "🤖 AI Development Task Started",
-      color: 0x00ff00,
-      fields: [
-        { name: "📝 Instruction", value: instruction, inline: false },
-        { name: "🔄 Status", value: "Processing with AI agent...", inline: true },
-        { name: "🚀 Deployment", value: "Will auto-deploy when complete", inline: true }
-      ],
-      footer: {
-        text: "Check GitHub commits for progress updates"
-      }
-    };
-
-    return NextResponse.json({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        embeds: [embed]
-      }
-    });
-
-  } catch (error: any) {
-    return NextResponse.json({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        content: `❌ Build command failed: ${error.message}`,
-        flags: 64
-      }
-    });
-  }
+  return immediateResponse;
 }
 
 async function handleEditCommand(options: any[]) {
@@ -594,55 +557,47 @@ async function handleEditCommand(options: any[]) {
     });
   }
 
+  // Send immediate response to Discord (must be within 3 seconds)
+  const instruction = `Edit the file ${filePath}: ${changes}`;
+  const immediateResponse = NextResponse.json({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      content: `✏️ **File Edit Task Started**\n\n📁 **File:** ${filePath}\n📝 **Changes:** ${changes.substring(0, 150)}${changes.length > 150 ? '...' : ''}\n\n⏳ Processing with AI agent... This may take a moment.\n\n🚀 Changes will be committed to GitHub and auto-deployed when complete!`
+    }
+  });
+
+  // Process the AI request in the background (don't await)
+  processAIRequest(instruction).catch(console.error);
+
+  return immediateResponse;
+}
+
+// Background function to process AI requests without blocking Discord response
+async function processAIRequest(instruction: string): Promise<void> {
   try {
-    // Send the edit request to the AI agent
-    const instruction = `Edit the file ${filePath}: ${changes}`;
-    const baseUrl = 'https://slotverse.net'; // Always use main domain
+    console.log('Processing AI request in background:', instruction);
+    
+    const baseUrl = 'https://slotverse.net';
     const agentResponse = await fetch(`${baseUrl}/api/agent/dev`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: `Discord Edit Request: ${instruction}`,
-        sessionId: 'discord-edit'
+        prompt: instruction,
+        sessionId: 'discord-background'
       })
     });
 
     if (!agentResponse.ok) {
-      throw new Error(`Agent API error: ${agentResponse.status}`);
+      console.error('AI agent request failed:', agentResponse.status);
+      return;
     }
 
     const result = await agentResponse.json();
-
-    const embed = {
-      title: "✏️ File Edit Task Started",
-      color: 0x0099ff,
-      fields: [
-        { name: "📁 File", value: filePath, inline: true },
-        { name: "📝 Changes", value: changes.substring(0, 100) + (changes.length > 100 ? '...' : ''), inline: false },
-        { name: "🔄 Status", value: "Processing with AI agent...", inline: true },
-        { name: "🚀 Deployment", value: "Will auto-deploy when complete", inline: true }
-      ],
-      footer: {
-        text: "Check GitHub commits for the actual changes made"
-      }
-    };
-
-    return NextResponse.json({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        embeds: [embed]
-      }
-    });
-
-  } catch (error: any) {
-    return NextResponse.json({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        content: `❌ Edit command failed: ${error.message}`,
-        flags: 64
-      }
-    });
+    console.log('AI agent request completed successfully');
+    
+  } catch (error) {
+    console.error('Background AI request error:', error);
   }
 }
