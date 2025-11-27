@@ -1,4 +1,4 @@
-import { robustScraper } from './robust-scraper';
+// Using direct fetch for provider scraping instead of robust-scraper
 
 export interface ProviderData {
   name: string;
@@ -19,6 +19,40 @@ export interface ProviderScrapeResult {
 class ProviderScraper {
   
   /**
+   * Fetch HTML from a page
+   */
+  private async fetchPageHtml(url: string): Promise<string | null> {
+    try {
+      console.log(`[ProviderScraper] Fetching: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+        },
+        timeout: 30000
+      });
+      
+      if (!response.ok) {
+        console.error(`[ProviderScraper] HTTP ${response.status}: ${response.statusText}`);
+        return null;
+      }
+      
+      const html = await response.text();
+      console.log(`[ProviderScraper] Fetched ${html.length} characters`);
+      return html;
+      
+    } catch (error: any) {
+      console.error(`[ProviderScraper] Fetch error:`, error.message);
+      return null;
+    }
+  }
+  
+  /**
    * Scrape provider directory pages (like slotslaunch.com/providers)
    */
   async scrapeProviderDirectory(baseUrl: string, maxPages: number = 1): Promise<ProviderScrapeResult> {
@@ -35,16 +69,16 @@ class ProviderScraper {
         const pageUrl = this.buildPageUrl(baseUrl, currentPage);
         console.log(`[ProviderScraper] Page URL: ${pageUrl}`);
         
-        // Scrape the page
-        const scrapeResult = await robustScraper.scrapeUrl(pageUrl, undefined);
+        // Fetch the page HTML directly
+        const html = await this.fetchPageHtml(pageUrl);
         
-        if (!scrapeResult.success || !scrapeResult.html) {
-          console.error(`[ProviderScraper] Failed to scrape page ${currentPage}:`, scrapeResult.error);
+        if (!html) {
+          console.error(`[ProviderScraper] Failed to fetch page ${currentPage}: ${pageUrl}`);
           break;
         }
         
         // Extract providers from HTML
-        const pageProviders = this.extractProvidersFromHtml(scrapeResult.html, baseUrl);
+        const pageProviders = this.extractProvidersFromHtml(html, baseUrl);
         console.log(`[ProviderScraper] Found ${pageProviders.length} providers on page ${currentPage}`);
         
         allProviders.push(...pageProviders);
